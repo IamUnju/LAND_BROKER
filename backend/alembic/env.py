@@ -5,6 +5,7 @@ from sqlalchemy import pool
 from alembic import context
 import sys
 import os
+import logging
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -12,6 +13,7 @@ from app.infrastructure.db.database import Base
 from app.infrastructure.db.models import *  # noqa: import all models
 from app.infrastructure.config.settings import get_settings
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 config = context.config
@@ -42,14 +44,18 @@ def do_run_migrations(connection):
 
 
 async def run_async_migrations() -> None:
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
-    await connectable.dispose()
+    try:
+        connectable = async_engine_from_config(
+            config.get_section(config.config_ini_section, {}),
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+        )
+        async with connectable.connect() as connection:
+            await connection.run_sync(do_run_migrations)
+        await connectable.dispose()
+    except Exception as e:
+        logger.error(f"Failed to run migrations: {e}")
+        logger.info("Migrations will be skipped. Application will start without database schema.")
 
 
 def run_migrations_online() -> None:

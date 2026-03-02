@@ -7,6 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
     gcc \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -17,7 +18,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY . .
 
+RUN chmod +x wait_and_migrate.sh
+
 EXPOSE 8000
 
 # Use shell form so ${PORT:-8000} is expanded at runtime (Railway injects PORT)
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2
+CMD ["./wait_and_migrate.sh"]
