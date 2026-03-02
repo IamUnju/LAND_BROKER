@@ -11,6 +11,14 @@ const navConfig = {
   ADMIN: [
     { to: "/admin", icon: HiOutlineChartBar, label: "Dashboard", end: true },
     { to: "/admin/users", icon: HiOutlineUsers, label: "Users" },
+    { to: "/admin/owners", icon: HiOutlineOfficeBuilding, label: "Owners" },
+    { to: "/admin/brokers", icon: HiOutlineBriefcase, label: "Brokers" },
+    { to: "/admin/properties", icon: HiOutlineOfficeBuilding, label: "Properties" },
+    { to: "/admin/units", icon: HiOutlineKey, label: "Units" },
+    { to: "/admin/leases", icon: HiOutlineDocumentText, label: "Leases" },
+    { to: "/admin/payments", icon: HiOutlineCurrencyDollar, label: "Payments" },
+    { to: "/admin/maintenance", icon: HiOutlineCog, label: "Maintenance" },
+    { to: "/admin/commissions", icon: HiOutlineCurrencyDollar, label: "Commissions" },
     { to: "/admin/master", icon: HiOutlineDatabase, label: "Master Data" },
   ],
   OWNER: [
@@ -31,6 +39,7 @@ const navConfig = {
   ],
   BROKER: [
     { to: "/broker", icon: HiOutlineBriefcase, label: "Dashboard", end: true },
+    { to: "/broker/properties", icon: HiOutlineOfficeBuilding, label: "Properties" },
     { to: "/broker/commissions", icon: HiOutlineCurrencyDollar, label: "Commissions" },
   ],
 };

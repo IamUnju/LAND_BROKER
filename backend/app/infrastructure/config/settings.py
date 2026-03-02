@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Bcrypt
     BCRYPT_ROUNDS: int = 12
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 

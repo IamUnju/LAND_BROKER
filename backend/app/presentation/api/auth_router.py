@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.application.dto.user_dto import (
-    UserCreateDTO, LoginDTO, TokenDTO, RefreshTokenDTO, UserResponseDTO,
+    UserCreateDTO, LoginDTO, TokenDTO, RefreshTokenDTO, UserResponseDTO, GoogleAuthDTO,
 )
 from app.application.use_cases.auth_use_case import AuthUseCase
 from app.presentation.dependencies.di_container import get_auth_use_case, get_current_user
@@ -37,3 +37,12 @@ async def refresh(
 @router.get("/me", response_model=UserResponseDTO)
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/google", response_model=TokenDTO)
+async def google_login(
+    dto: GoogleAuthDTO,
+    use_case: AuthUseCase = Depends(get_auth_use_case),
+):
+    """Authenticate (or register as TENANT) using a Google ID token."""
+    return await use_case.google_auth(dto)

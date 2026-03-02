@@ -64,6 +64,10 @@ class UnitRepository(IUnitRepository):
         )
         return [self._to_entity(m) for m in result.scalars().all()]
 
+    async def get_all(self, skip: int = 0, limit: int = 100) -> List[Unit]:
+        result = await self._session.execute(select(UnitModel).offset(skip).limit(limit))
+        return [self._to_entity(m) for m in result.scalars().all()]
+
     async def update(self, unit: Unit) -> Unit:
         result = await self._session.execute(select(UnitModel).where(UnitModel.id == unit.id))
         model = result.scalar_one_or_none()

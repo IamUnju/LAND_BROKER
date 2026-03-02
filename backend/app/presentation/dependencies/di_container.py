@@ -87,8 +87,9 @@ def get_district_repo(db: AsyncSession = Depends(get_db)):
 # ── Use Case Factories ────────────────────────────────────────────────────────
 def get_auth_use_case(
     user_repo=Depends(get_user_repo),
+    role_repo=Depends(get_role_repo),
 ) -> AuthUseCase:
-    return AuthUseCase(user_repo, password_hasher, jwt_service)
+    return AuthUseCase(user_repo, password_hasher, jwt_service, role_repo)
 
 def get_user_use_case(user_repo=Depends(get_user_repo)) -> UserUseCase:
     return UserUseCase(user_repo, password_hasher)

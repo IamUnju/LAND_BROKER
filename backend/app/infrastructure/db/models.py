@@ -129,6 +129,9 @@ class PropertyModel(Base):
     inquiries = relationship("InquiryModel", back_populates="property", cascade="all, delete-orphan")
     favorites = relationship("FavoriteModel", back_populates="property", cascade="all, delete-orphan")
     commissions = relationship("CommissionModel", back_populates="property", cascade="all, delete-orphan")
+    images = relationship("PropertyImageModel", back_populates="property", cascade="all, delete-orphan", order_by="PropertyImageModel.display_order")
+    amenities = relationship("AmenityModel", secondary="property_amenities", back_populates="properties")
+    reviews = relationship("ReviewModel", back_populates="property", cascade="all, delete-orphan")
 
 
 class UnitModel(Base):
@@ -275,3 +278,51 @@ class CommissionModel(Base):
 
     property = relationship("PropertyModel", back_populates="commissions")
     broker = relationship("UserModel", back_populates="commissions")
+
+
+class PropertyImageModel(Base):
+    __tablename__ = "property_images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(Integer, ForeignKey("properties.id", ondelete="CASCADE"), nullable=False)
+    url = Column(String(500), nullable=False)
+    caption = Column(String(200), nullable=True)
+    is_primary = Column(Boolean, default=False)
+    display_order = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    property = relationship("PropertyModel", back_populates="images")
+
+
+class AmenityModel(Base):
+    __tablename__ = "amenities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+    icon = Column(String(10), nullable=True)
+    category = Column(String(50), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    properties = relationship("PropertyModel", secondary="property_amenities", back_populates="amenities")
+
+
+class PropertyAmenityModel(Base):
+    __tablename__ = "property_amenities"
+
+    property_id = Column(Integer, ForeignKey("properties.id", ondelete="CASCADE"), primary_key=True)
+    amenity_id = Column(Integer, ForeignKey("amenities.id", ondelete="CASCADE"), primary_key=True)
+
+
+class ReviewModel(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    property_id = Column(Integer, ForeignKey("properties.id", ondelete="CASCADE"), nullable=False)
+    reviewer_name = Column(String(200), nullable=False)
+    reviewer_avatar = Column(String(500), nullable=True)
+    rating = Column(Integer, nullable=False)
+    comment = Column(Text, nullable=True)
+    stay_period = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    property = relationship("PropertyModel", back_populates="reviews")

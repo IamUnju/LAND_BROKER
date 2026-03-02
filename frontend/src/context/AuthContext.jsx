@@ -39,6 +39,15 @@ export function AuthProvider({ children }) {
     await api.post("/auth/register", payload);
   }, []);
 
+  const googleAuth = useCallback(async (accessToken) => {
+    const { data } = await api.post("/auth/google", { token: accessToken });
+    localStorage.setItem("access_token", data.access_token);
+    localStorage.setItem("refresh_token", data.refresh_token);
+    const { data: userData } = await api.get("/auth/me");
+    setUser(userData);
+    return userData;
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
@@ -52,7 +61,7 @@ export function AuthProvider({ children }) {
   const isBroker = () => hasRole("BROKER");
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, hasRole, isAdmin, isOwner, isTenant, isBroker }}>
+    <AuthContext.Provider value={{ user, loading, login, register, googleAuth, logout, hasRole, isAdmin, isOwner, isTenant, isBroker }}>
       {children}
     </AuthContext.Provider>
   );

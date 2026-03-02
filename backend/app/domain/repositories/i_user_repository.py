@@ -32,3 +32,7 @@ class IUserRepository(ABC):
     @abstractmethod
     async def count(self) -> int:
         pass
+
+    @abstractmethod
+    async def get_by_role_name(self, role_name: str, skip: int = 0, limit: int = 100) -> List[User]:
+        pass

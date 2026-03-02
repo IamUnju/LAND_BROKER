@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query
-from app.application.dto.user_dto import UserUpdateDTO, UserResponseDTO, UserListDTO
+from app.application.dto.user_dto import UserUpdateDTO, UserResponseDTO, UserListDTO, AdminUserCreateDTO
 from app.application.use_cases.user_use_case import UserUseCase
 from app.presentation.dependencies.di_container import (
     get_user_use_case, get_current_user, require_roles,
@@ -7,6 +7,38 @@ from app.presentation.dependencies.di_container import (
 from app.domain.entities.user import User
 
 router = APIRouter(prefix="/users", tags=["Users"])
+
+
+@router.post("/", response_model=UserResponseDTO, status_code=201)
+async def admin_create_user(
+    dto: AdminUserCreateDTO,
+    _: User = Depends(require_roles("ADMIN")),
+    use_case: UserUseCase = Depends(get_user_use_case),
+):
+    """Admin-only: create a user with any role (OWNER, BROKER, TENANT, etc.)"""
+    return await use_case.admin_create_user(dto)
+
+
+@router.get("/brokers", response_model=UserListDTO)
+async def list_brokers(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
+    _: User = Depends(require_roles("ADMIN", "OWNER")),
+    use_case: UserUseCase = Depends(get_user_use_case),
+):
+    """List all active users with BROKER role (accessible by ADMIN and OWNER)."""
+    return await use_case.list_by_role("BROKER", skip=skip, limit=limit)
+
+
+@router.get("/owners", response_model=UserListDTO)
+async def list_owners(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
+    _: User = Depends(require_roles("ADMIN")),
+    use_case: UserUseCase = Depends(get_user_use_case),
+):
+    """Admin-only: list all active users with OWNER role."""
+    return await use_case.list_by_role("OWNER", skip=skip, limit=limit)
 
 
 @router.get("/", response_model=UserListDTO)

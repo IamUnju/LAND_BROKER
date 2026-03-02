@@ -2,9 +2,10 @@ from typing import List, Optional, Dict, Any
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
+from sqlalchemy.orm import selectinload
 from app.domain.repositories.i_property_repository import IPropertyRepository
 from app.domain.entities.property import Property
-from app.infrastructure.db.models import PropertyModel
+from app.infrastructure.db.models import PropertyModel, DistrictModel, PropertyImageModel, AmenityModel, ReviewModel
 
 
 class PropertyRepository(IPropertyRepository):
@@ -12,6 +13,65 @@ class PropertyRepository(IPropertyRepository):
         self._session = session
 
     def _to_entity(self, model: PropertyModel) -> Property:
+        # Safely read relationship names if already loaded
+        try:
+            pt_name = model.property_type.name if model.property_type else None
+        except Exception:
+            pt_name = None
+        try:
+            lt_name = model.listing_type.name if model.listing_type else None
+        except Exception:
+            lt_name = None
+        try:
+            district_name = model.district.name if model.district else None
+            region_name = model.district.region.name if (model.district and model.district.region) else None
+        except Exception:
+            district_name = None
+            region_name = None
+        # Safely read rich relationship data (images/amenities/reviews may not be loaded)
+        try:
+            images = [
+                {"id": img.id, "url": img.url, "caption": img.caption,
+                 "is_primary": img.is_primary or False, "display_order": img.display_order or 0}
+                for img in (model.images or [])
+            ]
+        except Exception:
+            images = []
+        try:
+            amenities = [
+                {"id": a.id, "name": a.name, "icon": a.icon, "category": a.category}
+                for a in (model.amenities or [])
+            ]
+        except Exception:
+            amenities = []
+        try:
+            reviews_data = [
+                {"id": r.id, "reviewer_name": r.reviewer_name, "reviewer_avatar": r.reviewer_avatar,
+                 "rating": r.rating, "comment": r.comment, "stay_period": r.stay_period,
+                 "created_at": r.created_at}
+                for r in (model.reviews or [])
+            ]
+        except Exception:
+            reviews_data = []
+        avg_rating = round(sum(r["rating"] for r in reviews_data) / len(reviews_data), 1) if reviews_data else 0.0
+        # Host/Owner info
+        try:
+            host_name = f"{model.owner.first_name} {model.owner.last_name}".strip() if model.owner else None
+            owner_email = model.owner.email if model.owner else None
+            owner_phone = model.owner.phone if model.owner else None
+        except Exception:
+            host_name = None
+            owner_email = None
+            owner_phone = None
+        # Broker info
+        try:
+            broker_name = f"{model.broker.first_name} {model.broker.last_name}".strip() if model.broker else None
+            broker_email = model.broker.email if model.broker else None
+            broker_phone = model.broker.phone if model.broker else None
+        except Exception:
+            broker_name = None
+            broker_email = None
+            broker_phone = None
         return Property(
             id=model.id,
             title=model.title,
@@ -32,6 +92,21 @@ class PropertyRepository(IPropertyRepository):
             broker_id=model.broker_id,
             created_at=model.created_at,
             updated_at=model.updated_at,
+            property_type_name=pt_name,
+            listing_type_name=lt_name,
+            district_name=district_name,
+            region_name=region_name,
+            images=images,
+            amenities=amenities,
+            reviews=reviews_data,
+            avg_rating=avg_rating,
+            review_count=len(reviews_data),
+            host_name=host_name,
+            owner_email=owner_email,
+            owner_phone=owner_phone,
+            broker_name=broker_name,
+            broker_email=broker_email,
+            broker_phone=broker_phone,
         )
 
     def _build_filters(self, query, filters: Dict[str, Any]):
@@ -40,6 +115,8 @@ class PropertyRepository(IPropertyRepository):
         conditions = []
         if "owner_id" in filters:
             conditions.append(PropertyModel.owner_id == filters["owner_id"])
+        if "broker_id" in filters:
+            conditions.append(PropertyModel.broker_id == filters["broker_id"])
         if "district_id" in filters:
             conditions.append(PropertyModel.district_id == filters["district_id"])
         if "property_type_id" in filters:
@@ -83,12 +160,31 @@ class PropertyRepository(IPropertyRepository):
         return self._to_entity(model)
 
     async def get_by_id(self, property_id: int) -> Optional[Property]:
-        result = await self._session.execute(select(PropertyModel).where(PropertyModel.id == property_id))
+        result = await self._session.execute(
+            select(PropertyModel)
+            .options(
+                selectinload(PropertyModel.property_type),
+                selectinload(PropertyModel.listing_type),
+                selectinload(PropertyModel.district).selectinload(DistrictModel.region),
+                selectinload(PropertyModel.images),
+                selectinload(PropertyModel.amenities),
+                selectinload(PropertyModel.reviews),
+                selectinload(PropertyModel.owner),
+                selectinload(PropertyModel.broker),
+            )
+            .where(PropertyModel.id == property_id)
+        )
         model = result.scalar_one_or_none()
         return self._to_entity(model) if model else None
 
     async def get_all(self, skip: int = 0, limit: int = 20, filters: Optional[Dict[str, Any]] = None) -> List[Property]:
-        query = select(PropertyModel)
+        query = select(PropertyModel).options(
+            selectinload(PropertyModel.property_type),
+            selectinload(PropertyModel.listing_type),
+            selectinload(PropertyModel.district).selectinload(DistrictModel.region),
+            selectinload(PropertyModel.owner),
+            selectinload(PropertyModel.broker),
+        )
         if filters:
             query = self._build_filters(query, filters)
         query = query.offset(skip).limit(limit).order_by(PropertyModel.created_at.desc())
@@ -98,8 +194,17 @@ class PropertyRepository(IPropertyRepository):
     async def get_by_owner(self, owner_id: int, skip: int = 0, limit: int = 20) -> List[Property]:
         return await self.get_all(skip=skip, limit=limit, filters={"owner_id": owner_id})
 
+    async def get_by_broker(self, broker_id: int, skip: int = 0, limit: int = 20) -> List[Property]:
+        return await self.get_all(skip=skip, limit=limit, filters={"broker_id": broker_id})
+
     async def get_published(self, skip: int = 0, limit: int = 20, filters: Optional[Dict[str, Any]] = None) -> List[Property]:
-        query = select(PropertyModel).where(PropertyModel.is_published == True)
+        query = select(PropertyModel).options(
+            selectinload(PropertyModel.property_type),
+            selectinload(PropertyModel.listing_type),
+            selectinload(PropertyModel.district).selectinload(DistrictModel.region),
+            selectinload(PropertyModel.owner),
+            selectinload(PropertyModel.broker),
+        ).where(PropertyModel.is_published == True)
         if filters:
             query = self._build_filters(query, filters)
         query = query.offset(skip).limit(limit).order_by(PropertyModel.created_at.desc())

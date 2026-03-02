@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from decimal import Decimal
 
 
@@ -25,6 +25,23 @@ class Property:
     id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    # Enriched display fields (populated from joins)
+    property_type_name: Optional[str] = None
+    listing_type_name: Optional[str] = None
+    district_name: Optional[str] = None
+    region_name: Optional[str] = None
+    # Rich detail fields
+    images: List = field(default_factory=list)
+    amenities: List = field(default_factory=list)
+    reviews: List = field(default_factory=list)
+    avg_rating: float = 0.0
+    review_count: int = 0
+    host_name: Optional[str] = None
+    owner_email: Optional[str] = None
+    owner_phone: Optional[str] = None
+    broker_name: Optional[str] = None
+    broker_email: Optional[str] = None
+    broker_phone: Optional[str] = None
 
     def __post_init__(self):
         self._validate()

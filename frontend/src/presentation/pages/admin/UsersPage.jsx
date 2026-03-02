@@ -3,7 +3,7 @@ import api from "../../../infrastructure/api";
 import Badge from "../../components/Badge";
 import Modal from "../../components/Modal";
 import toast from "react-hot-toast";
-import { HiOutlinePencil, HiOutlineCheck, HiOutlineBan } from "react-icons/hi";
+import { HiOutlinePencil, HiOutlineCheck, HiOutlineBan, HiOutlineUserAdd } from "react-icons/hi";
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -11,6 +11,9 @@ export default function UsersPage() {
   const [editUser, setEditUser] = useState(null);
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ email: "", password: "", first_name: "", last_name: "", phone: "", role_id: "" });
+  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     const [u, r] = await Promise.all([api.get("/users"), api.get("/master/roles")]);
@@ -39,9 +42,29 @@ export default function UsersPage() {
     } catch (e) { toast.error(e.response?.data?.detail || "Error"); }
   };
 
+  const createUser = async () => {
+    if (!createForm.role_id) return toast.error("Please select a role");
+    setCreating(true);
+    try {
+      await api.post("/users/", { ...createForm, role_id: Number(createForm.role_id) });
+      toast.success("User created successfully");
+      setShowCreate(false);
+      setCreateForm({ email: "", password: "", first_name: "", last_name: "", phone: "", role_id: "" });
+      load();
+    } catch (e) {
+      const detail = e.response?.data?.detail;
+      toast.error(Array.isArray(detail) ? detail[0]?.msg : detail || "Error creating user");
+    } finally { setCreating(false); }
+  };
+
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-800">User Management</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-gray-800">User Management</h2>
+        <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2 text-sm">
+          <HiOutlineUserAdd className="h-4 w-4" /> Add User
+        </button>
+      </div>
       {loading ? <p className="text-gray-400">Loading…</p> : (
         <div className="card p-0 overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
@@ -72,6 +95,34 @@ export default function UsersPage() {
         </div>
       )}
 
+      {/* ── Create User Modal ── */}
+      {showCreate && (
+        <Modal title="Add New User" onClose={() => setShowCreate(false)}>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="label">First Name</label><input className="input" value={createForm.first_name} onChange={(e) => setCreateForm((f) => ({ ...f, first_name: e.target.value }))} /></div>
+              <div><label className="label">Last Name</label><input className="input" value={createForm.last_name} onChange={(e) => setCreateForm((f) => ({ ...f, last_name: e.target.value }))} /></div>
+            </div>
+            <div><label className="label">Email</label><input type="email" className="input" value={createForm.email} onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))} /></div>
+            <div><label className="label">Phone</label><input className="input" placeholder="+233..." value={createForm.phone} onChange={(e) => setCreateForm((f) => ({ ...f, phone: e.target.value }))} /></div>
+            <div><label className="label">Password</label><input type="password" className="input" placeholder="Min 8 chars, 1 uppercase, 1 digit" value={createForm.password} onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))} /></div>
+            <div>
+              <label className="label">Role</label>
+              <select className="input" value={createForm.role_id} onChange={(e) => setCreateForm((f) => ({ ...f, role_id: e.target.value }))}>
+                <option value="">Select a role</option>
+                {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </div>
+            <p className="text-xs text-gray-400">Tenants can self-register. Use this to create Owners, Brokers, Admins.</p>
+            <div className="flex gap-3 justify-end pt-2">
+              <button onClick={() => setShowCreate(false)} className="btn-secondary">Cancel</button>
+              <button onClick={createUser} disabled={creating} className="btn-primary">{creating ? "Creating…" : "Create User"}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Edit User Modal ── */}
       {editUser && (
         <Modal title="Edit User" onClose={() => setEditUser(null)}>
           <div className="space-y-3">

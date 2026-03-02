@@ -13,6 +13,9 @@ import PropertyDetailPage from "./presentation/pages/public/PropertyDetailPage";
 import AdminDashboard from "./presentation/pages/admin/AdminDashboard";
 import UsersPage from "./presentation/pages/admin/UsersPage";
 import MasterDataPage from "./presentation/pages/admin/MasterDataPage";
+import AdminOwnersPage from "./presentation/pages/admin/AdminOwnersPage";
+import AdminBrokersPage from "./presentation/pages/admin/AdminBrokersPage";
+import AdminCommissionsPage from "./presentation/pages/admin/AdminCommissionsPage";
 
 // Owner
 import OwnerDashboard from "./presentation/pages/owner/OwnerDashboard";
@@ -33,6 +36,7 @@ import TenantInquiriesPage from "./presentation/pages/tenant/TenantInquiriesPage
 // Broker
 import BrokerDashboard from "./presentation/pages/broker/BrokerDashboard";
 import CommissionsPage from "./presentation/pages/broker/CommissionsPage";
+import BrokerPropertiesPage from "./presentation/pages/broker/BrokerPropertiesPage";
 
 function RoleRedirect() {
   const { user } = useAuth();
@@ -49,6 +53,7 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/marketplace" element={<MarketplacePage />} />
       <Route path="/marketplace/:id" element={<PropertyDetailPage />} />
+      <Route path="/properties/:id" element={<PropertyDetailPage />} />
       <Route path="/" element={<Navigate to="/marketplace" replace />} />
 
       {/* Dashboard redirect */}
@@ -58,6 +63,14 @@ export default function App() {
       <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]}><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<AdminDashboard />} />
         <Route path="users" element={<UsersPage />} />
+        <Route path="owners" element={<AdminOwnersPage />} />
+        <Route path="brokers" element={<AdminBrokersPage />} />
+        <Route path="properties" element={<PropertiesPage />} />
+        <Route path="units" element={<UnitsPage />} />
+        <Route path="leases" element={<LeasesPage />} />
+        <Route path="payments" element={<PaymentsPage />} />
+        <Route path="maintenance" element={<MaintenancePage />} />
+        <Route path="commissions" element={<AdminCommissionsPage />} />
         <Route path="master" element={<MasterDataPage />} />
       </Route>
 
@@ -84,6 +97,7 @@ export default function App() {
       {/* BROKER */}
       <Route path="/broker" element={<ProtectedRoute roles={["BROKER"]}><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<BrokerDashboard />} />
+        <Route path="properties" element={<BrokerPropertiesPage />} />
         <Route path="commissions" element={<CommissionsPage />} />
       </Route>
 

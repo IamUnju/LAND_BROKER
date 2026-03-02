@@ -24,3 +24,11 @@ class IUnitRepository(ABC):
     @abstractmethod
     async def delete(self, unit_id: int) -> bool:
         pass
+
+    @abstractmethod
+    async def get_by_owner(self, owner_id: int) -> List[Unit]:
+        pass
+
+    @abstractmethod
+    async def get_all(self, skip: int = 0, limit: int = 100) -> List[Unit]:
+        pass

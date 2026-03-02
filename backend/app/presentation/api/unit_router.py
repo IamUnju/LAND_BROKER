@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from typing import List
 from app.application.dto.unit_dto import UnitCreateDTO, UnitUpdateDTO, UnitResponseDTO
 from app.application.use_cases.unit_use_case import UnitUseCase
-from app.presentation.dependencies.di_container import get_unit_use_case, get_current_user
+from app.presentation.dependencies.di_container import get_unit_use_case, get_current_user, require_roles
 from app.domain.entities.user import User
 
 router = APIRouter(prefix="/units", tags=["Units"])
@@ -13,6 +13,9 @@ async def list_my_units(
     current_user: User = Depends(get_current_user),
     use_case: UnitUseCase = Depends(get_unit_use_case),
 ):
+    role = (current_user.role_name or "").upper()
+    if role == "ADMIN":
+        return await use_case.list_all_units()
     return await use_case.get_owner_units(current_user.id)
 
 

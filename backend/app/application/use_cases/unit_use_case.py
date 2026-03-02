@@ -42,6 +42,9 @@ class UnitUseCase:
     async def get_owner_units(self, owner_id: int):
         return await self._unit_repo.get_by_owner(owner_id)
 
+    async def list_all_units(self, skip: int = 0, limit: int = 200):
+        return await self._unit_repo.get_all(skip=skip, limit=limit)
+
     async def update_unit(self, unit_id: int, dto: UnitUpdateDTO, owner_id: int, is_admin: bool = False) -> Unit:
         unit = await self.get_unit(unit_id)
         prop = await self._property_repo.get_by_id(unit.property_id)

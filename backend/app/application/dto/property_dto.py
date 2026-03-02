@@ -4,6 +4,37 @@ from decimal import Decimal
 from datetime import datetime
 
 
+class PropertyImageDTO(BaseModel):
+    id: int
+    url: str
+    caption: Optional[str] = None
+    is_primary: bool = False
+    display_order: int = 0
+
+    model_config = {"from_attributes": True}
+
+
+class AmenityDTO(BaseModel):
+    id: int
+    name: str
+    icon: Optional[str] = None
+    category: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class ReviewDTO(BaseModel):
+    id: int
+    reviewer_name: str
+    reviewer_avatar: Optional[str] = None
+    rating: int
+    comment: Optional[str] = None
+    stay_period: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
 class PropertyCreateDTO(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     property_type_id: int = Field(gt=0)
@@ -59,6 +90,29 @@ class PropertyResponseDTO(BaseModel):
     broker_id: Optional[int]
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
+    # Enriched display fields
+    property_type_name: Optional[str] = None
+    listing_type_name: Optional[str] = None
+    district_name: Optional[str] = None
+    region_name: Optional[str] = None
+    # Contact info (available even on listing cards)
+    host_name: Optional[str] = None
+    broker_name: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class PropertyDetailDTO(PropertyResponseDTO):
+    images: List[PropertyImageDTO] = []
+    amenities: List[AmenityDTO] = []
+    reviews: List[ReviewDTO] = []
+    avg_rating: float = 0.0
+    review_count: int = 0
+    # Full contact details on detail page
+    owner_email: Optional[str] = None
+    owner_phone: Optional[str] = None
+    broker_email: Optional[str] = None
+    broker_phone: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -79,5 +133,7 @@ class PropertyFilterDTO(BaseModel):
     max_price: Optional[Decimal] = None
     bedrooms: Optional[int] = None
     is_furnished: Optional[bool] = None
+    owner_id: Optional[int] = None
+    broker_id: Optional[int] = None
     skip: int = Field(default=0, ge=0)
     limit: int = Field(default=20, ge=1, le=100)

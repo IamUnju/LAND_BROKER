@@ -35,17 +35,19 @@ function getRating(id) {
 }
 
 function PropertyCard({ p, index, favorited, onFavorite }) {
-  const photo = PHOTOS[index % PHOTOS.length];
+  const primaryImage = p.images?.find((i) => i.is_primary)?.url
+    || p.images?.[0]?.url
+    || PHOTOS[index % PHOTOS.length];
   const rating = getRating(p.id);
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="group cursor-pointer">
+    <Link to={`/properties/${p.id}`} className="group block cursor-pointer">
       {/* Image */}
       <div className="relative overflow-hidden rounded-2xl aspect-[4/3] bg-gray-200">
         {!imgError ? (
           <img
-            src={photo}
+            src={primaryImage}
             alt={p.title}
             onError={() => setImgError(true)}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -55,7 +57,7 @@ function PropertyCard({ p, index, favorited, onFavorite }) {
         )}
         {/* Favorite button */}
         <button
-          onClick={(e) => { e.preventDefault(); onFavorite(p.id); }}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFavorite(p.id); }}
           className="absolute right-3 top-3 rounded-full p-1 transition-colors"
         >
           {favorited ? (
@@ -73,7 +75,7 @@ function PropertyCard({ p, index, favorited, onFavorite }) {
       </div>
 
       {/* Info */}
-      <Link to={`/marketplace/${p.id}`} className="mt-2 block">
+      <div className="mt-2">
         <div className="flex items-start justify-between gap-2">
           <p className="font-semibold text-gray-900 truncate">
             {p.property_type_name ?? "Property"} in {p.district_name ?? p.address ?? "—"}
@@ -85,11 +87,18 @@ function PropertyCard({ p, index, favorited, onFavorite }) {
         </div>
         <p className="text-sm text-gray-500 truncate">{p.bedrooms ?? 0} bed · {p.bathrooms ?? 0} bath{p.is_furnished ? " · Furnished" : ""}</p>
         <p className="mt-1 text-sm text-gray-800">
-          <span className="font-semibold">${Number(p.price).toLocaleString()}</span>
+          <span className="font-semibold">GH₵ {Number(p.price).toLocaleString()}</span>
           <span className="text-gray-500"> / {p.listing_type_name?.toLowerCase().includes("rent") ? "month" : "total"}</span>
         </p>
-      </Link>
-    </div>
+        {/* Contact badge */}
+        <p className="mt-1 text-xs text-gray-500 truncate">
+          {p.broker_name
+            ? <span>🤝 Via broker: <span className="font-medium text-gray-700">{p.broker_name}</span></span>
+            : <span>📞 Contact owner: <span className="font-medium text-gray-700">{p.host_name || "Owner"}</span></span>
+          }
+        </p>
+      </div>
+    </Link>
   );
 }
 

@@ -4,7 +4,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import joinedload
 from app.domain.repositories.i_user_repository import IUserRepository
 from app.domain.entities.user import User
-from app.infrastructure.db.models import UserModel
+from app.infrastructure.db.models import UserModel, RoleModel
 
 
 class UserRepository(IUserRepository):
@@ -63,7 +63,9 @@ class UserRepository(IUserRepository):
         return self._to_entity(model) if model else None
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> List[User]:
-        result = await self._session.execute(select(UserModel).offset(skip).limit(limit))
+        result = await self._session.execute(
+            select(UserModel).options(joinedload(UserModel.role)).offset(skip).limit(limit)
+        )
         return [self._to_entity(m) for m in result.scalars().all()]
 
     async def update(self, user: User) -> User:
@@ -93,3 +95,15 @@ class UserRepository(IUserRepository):
     async def count(self) -> int:
         result = await self._session.execute(select(func.count()).select_from(UserModel))
         return result.scalar_one()
+
+    async def get_by_role_name(self, role_name: str, skip: int = 0, limit: int = 100) -> List[User]:
+        result = await self._session.execute(
+            select(UserModel)
+            .join(UserModel.role)
+            .options(joinedload(UserModel.role))
+            .where(RoleModel.name == role_name.upper())
+            .where(UserModel.is_active == True)
+            .offset(skip)
+            .limit(limit)
+        )
+        return [self._to_entity(m) for m in result.scalars().all()]

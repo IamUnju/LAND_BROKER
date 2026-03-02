@@ -35,6 +35,10 @@ class IPropertyRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_by_broker(self, broker_id: int, skip: int = 0, limit: int = 20) -> List[Property]:
+        pass
+
+    @abstractmethod
     async def get_published(
         self,
         skip: int = 0,
