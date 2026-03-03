@@ -16,8 +16,9 @@ RUN npm run build
 FROM nginx:alpine AS production
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf.template
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 # Default backend URL (works for local docker compose); override on Railway
 ENV BACKEND_URL=http://backend:8000
 EXPOSE 80
-# Use sed to replace ${BACKEND_URL} placeholder, then start nginx
-CMD /bin/sh -c "sed \"s|\${BACKEND_URL}|${BACKEND_URL}|g\" /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && cat /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+CMD ["/docker-entrypoint.sh"]
