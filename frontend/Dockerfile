@@ -18,7 +18,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
-# Default backend URL (works for local docker compose); override on Railway
-ENV BACKEND_URL=http://backend:8000
+# Hardcoded backend URL for Railway deployment
+ENV BACKEND_URL=https://land-broker-production.up.railway.app
 EXPOSE 80
 CMD ["/docker-entrypoint.sh"]
