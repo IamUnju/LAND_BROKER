@@ -18,7 +18,8 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
-# Hardcoded backend URL for Railway deployment
-ENV BACKEND_URL=https://land-broker-production.up.railway.app
+# Use Railway's internal network (faster, no SSL issues)
+# Replace LAND_BROKER with your actual backend service name if different
+ENV BACKEND_URL=http://LAND_BROKER.railway.internal:8000
 EXPOSE 80
 CMD ["/docker-entrypoint.sh"]
