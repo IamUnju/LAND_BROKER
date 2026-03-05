@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 from typing import List
+import os
 
 
 class Settings(BaseSettings):
@@ -9,7 +10,12 @@ class Settings(BaseSettings):
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     SECRET_KEY: str = "changeme-super-secret-key-at-least-32-chars"
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    # Comma-separated string to avoid JSON parsing issues with env vars
+    ALLOWED_ORIGINS_STR: str = "http://localhost:3000,http://localhost:5173"
+
+    @property
+    def ALLOWED_ORIGINS(self) -> List[str]:
+        return [o.strip() for o in self.ALLOWED_ORIGINS_STR.split(",") if o.strip()]
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@db:5432/broker_db"
