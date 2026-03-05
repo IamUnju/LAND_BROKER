@@ -104,9 +104,13 @@ class DistrictResponseDTO(BaseModel):
 class StatsDTO(BaseModel):
     total_users: int
     total_properties: int
+    total_units: int = 0
     total_tenants: int
     total_leases: int
     total_payments: int
     total_revenue: float
     pending_maintenance: int
+    open_maintenance: int = 0
     active_leases: int
+    payments_this_month: int = 0
+    users_by_role: dict = {}

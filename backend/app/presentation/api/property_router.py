@@ -28,6 +28,7 @@ def _build_filters(
     is_furnished: Optional[bool] = None,
     owner_id: Optional[int] = None,
     broker_id: Optional[int] = None,
+    search: Optional[str] = None,
     skip: int = 0,
     limit: int = 20,
 ) -> PropertyFilterDTO:
@@ -41,6 +42,7 @@ def _build_filters(
         is_furnished=is_furnished,
         owner_id=owner_id,
         broker_id=broker_id,
+        search=search,
         skip=skip,
         limit=limit,
     )

@@ -135,5 +135,6 @@ class PropertyFilterDTO(BaseModel):
     is_furnished: Optional[bool] = None
     owner_id: Optional[int] = None
     broker_id: Optional[int] = None
+    search: Optional[str] = None
     skip: int = Field(default=0, ge=0)
     limit: int = Field(default=20, ge=1, le=100)

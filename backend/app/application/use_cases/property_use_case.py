@@ -68,6 +68,8 @@ class PropertyUseCase:
             filter_dict["owner_id"] = filters.owner_id
         if filters.broker_id is not None:
             filter_dict["broker_id"] = filters.broker_id
+        if filters.search:
+            filter_dict["search"] = filters.search
 
         props = await self._repo.get_all(skip=filters.skip, limit=filters.limit, filters=filter_dict)
         total = await self._repo.count(filter_dict)
@@ -89,6 +91,8 @@ class PropertyUseCase:
             filter_dict["bedrooms"] = filters.bedrooms
         if filters.is_furnished is not None:
             filter_dict["is_furnished"] = filters.is_furnished
+        if filters.search:
+            filter_dict["search"] = filters.search
 
         props = await self._repo.get_published(skip=filters.skip, limit=filters.limit, filters=filter_dict)
         total = await self._repo.count_published(filter_dict)

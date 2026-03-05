@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Any
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 from app.domain.repositories.i_property_repository import IPropertyRepository
 from app.domain.entities.property import Property
@@ -131,6 +131,15 @@ class PropertyRepository(IPropertyRepository):
             conditions.append(PropertyModel.bedrooms == filters["bedrooms"])
         if "is_furnished" in filters:
             conditions.append(PropertyModel.is_furnished == filters["is_furnished"])
+        if "search" in filters and filters["search"]:
+            term = f"%{filters['search']}%"
+            conditions.append(
+                or_(
+                    PropertyModel.title.ilike(term),
+                    PropertyModel.address.ilike(term),
+                    PropertyModel.description.ilike(term),
+                )
+            )
         if conditions:
             query = query.where(and_(*conditions))
         return query
@@ -204,6 +213,8 @@ class PropertyRepository(IPropertyRepository):
             selectinload(PropertyModel.district).selectinload(DistrictModel.region),
             selectinload(PropertyModel.owner),
             selectinload(PropertyModel.broker),
+            selectinload(PropertyModel.images),
+            selectinload(PropertyModel.amenities),
         ).where(PropertyModel.is_published == True)
         if filters:
             query = self._build_filters(query, filters)

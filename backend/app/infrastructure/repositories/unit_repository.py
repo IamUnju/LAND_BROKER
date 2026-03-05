@@ -1,7 +1,7 @@
 from typing import List, Optional
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import joinedload
 from app.domain.repositories.i_unit_repository import IUnitRepository
 from app.domain.entities.unit import Unit, UnitStatus
@@ -88,3 +88,10 @@ class UnitRepository(IUnitRepository):
         await self._session.delete(model)
         await self._session.flush()
         return True
+
+    async def count(self, property_id: Optional[int] = None) -> int:
+        query = select(func.count()).select_from(UnitModel)
+        if property_id is not None:
+            query = query.where(UnitModel.property_id == property_id)
+        result = await self._session.execute(query)
+        return result.scalar_one()
