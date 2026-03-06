@@ -16,7 +16,7 @@ export default function UsersPage() {
   const [creating, setCreating] = useState(false);
 
   const load = async () => {
-    const [u, r] = await Promise.all([api.get("/users"), api.get("/master/roles")]);
+    const [u, r] = await Promise.all([api.get("/users/"), api.get("/master/roles")]);
     setUsers(u.data?.users ?? []);
     setRoles(r.data);
     setLoading(false);

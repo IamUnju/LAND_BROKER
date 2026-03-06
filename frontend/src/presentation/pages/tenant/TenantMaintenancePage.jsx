@@ -17,7 +17,7 @@ export default function TenantMaintenancePage() {
   const load = () => api.get("/maintenance").then(({ data }) => { setRequests(data); setLoading(false); });
 
   useEffect(() => {
-    api.get("/units").then(({ data }) => setUnits(data)).catch(() => {});
+    api.get("/units/").then(({ data }) => setUnits(data)).catch(() => {});
     load();
   }, []);
 

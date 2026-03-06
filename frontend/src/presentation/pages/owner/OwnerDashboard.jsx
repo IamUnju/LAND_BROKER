@@ -11,7 +11,7 @@ export default function OwnerDashboard() {
   useEffect(() => {
     Promise.allSettled([
       api.get("/properties/my"),
-      api.get("/units"),
+      api.get("/units/"),
       api.get("/leases"),
       api.get("/payments"),
       api.get("/maintenance"),

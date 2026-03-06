@@ -1,6 +1,19 @@
 import axios from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const RAW_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "/api/v1").trim();
+
+function normalizeBaseUrl(url) {
+  let normalized = url.replace(/\/+$/, "");
+
+  // In production behind TLS, force https to avoid browser mixed-content blocks.
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && normalized.startsWith("http://")) {
+    normalized = normalized.replace(/^http:\/\//i, "https://");
+  }
+
+  return normalized;
+}
+
+const BASE_URL = normalizeBaseUrl(RAW_BASE_URL);
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -17,6 +30,7 @@ api.interceptors.request.use((config) => {
 // Auto-refresh on 401
 let isRefreshing = false;
 let failedQueue = [];
+let redirectingToLogin = false;
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
@@ -26,15 +40,28 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+const redirectToLogin = () => {
+  if (redirectingToLogin) return;
+  redirectingToLogin = true;
+  localStorage.clear();
+  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+};
+
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+    if (
+      error.response?.status === 401
+      && original
+      && !original._retry
+      && !String(original.url || "").includes("/auth/refresh")
+    ) {
       const refreshToken = localStorage.getItem("refresh_token");
       if (!refreshToken) {
-        localStorage.clear();
-        window.location.href = "/login";
+        redirectToLogin();
         return Promise.reject(error);
       }
       if (isRefreshing) {
@@ -42,6 +69,7 @@ api.interceptors.response.use(
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
+            original.headers = original.headers || {};
             original.headers.Authorization = `Bearer ${token}`;
             return api(original);
           })
@@ -57,12 +85,12 @@ api.interceptors.response.use(
         if (data.refresh_token) localStorage.setItem("refresh_token", data.refresh_token);
         api.defaults.headers.Authorization = `Bearer ${data.access_token}`;
         processQueue(null, data.access_token);
+        original.headers = original.headers || {};
         original.headers.Authorization = `Bearer ${data.access_token}`;
         return api(original);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.clear();
-        window.location.href = "/login";
+        redirectToLogin();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

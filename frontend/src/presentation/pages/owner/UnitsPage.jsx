@@ -12,7 +12,7 @@ export default function UnitsPage() {
   const [form, setForm] = useState({ unit_number: "", floor: "", area_sqft: "", rent_amount: "", property_id: "" });
   const [loading, setLoading] = useState(true);
 
-  const load = () => api.get("/units").then(({ data }) => { setUnits(data); setLoading(false); });
+  const load = () => api.get("/units/").then(({ data }) => { setUnits(data); setLoading(false); });
 
   useEffect(() => {
     api.get("/properties/my").then(({ data }) => setProperties(data?.properties ?? []));
@@ -26,7 +26,7 @@ export default function UnitsPage() {
   const save = async () => {
     const payload = { ...form, property_id: Number(form.property_id), floor: form.floor ? Number(form.floor) : null, area_sqft: form.area_sqft ? Number(form.area_sqft) : null, rent_amount: form.rent_amount ? Number(form.rent_amount) : null };
     try {
-      if (modal.type === "create") await api.post("/units", payload);
+      if (modal.type === "create") await api.post("/units/", payload);
       else await api.put(`/units/${modal.item.id}`, payload);
       toast.success("Saved!"); setModal(null); load();
     } catch (e) { toast.error(e.response?.data?.detail || "Error"); }

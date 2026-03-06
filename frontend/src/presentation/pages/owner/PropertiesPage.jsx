@@ -72,7 +72,7 @@ export default function PropertiesPage() {
       broker_id: form.broker_id ? Number(form.broker_id) : null,
     };
     try {
-      if (modal.type === "create") await api.post("/properties", payload);
+      if (modal.type === "create") await api.post("/properties/", payload);
       else await api.put(`/properties/${modal.item.id}`, payload);
       toast.success("Saved!");
       setModal(null);

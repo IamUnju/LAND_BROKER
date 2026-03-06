@@ -16,7 +16,7 @@ export default function LeasesPage() {
   const load = () => api.get("/leases").then(({ data }) => { setLeases(data); setLoading(false); });
 
   useEffect(() => {
-    Promise.all([api.get("/units"), api.get("/tenants")]).then(([u, t]) => { setUnits(u.data); setTenants(t.data); });
+    Promise.all([api.get("/units/"), api.get("/tenants")]).then(([u, t]) => { setUnits(u.data); setTenants(t.data); });
     load();
   }, []);
 
