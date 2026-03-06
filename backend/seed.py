@@ -32,12 +32,9 @@ async def seed():
         await seed_reviews(session)
         await session.commit()
         print("\n✅ Seed data inserted successfully!")
-        print("\nTest Credentials:")
+        print("\nAdmin Account:")
         print("─" * 40)
-        print("ADMIN   → admin@broker.com     / Admin@1234")
-        print("OWNER   → owner@broker.com     / Owner@1234")
-        print("TENANT  → tenant@broker.com    / Tenant@1234")
-        print("BROKER  → broker@broker.com    / Broker@1234")
+        print("ADMIN   → kennyngoe@gmail.com  / ngoe@123")
         print("─" * 40)
 
 
@@ -134,10 +131,7 @@ async def seed_users(session: AsyncSession):
             roles[name] = role.id
 
     users = [
-        {"email": "admin@broker.com", "password": "Admin@1234", "first_name": "System", "last_name": "Admin", "role": "ADMIN"},
-        {"email": "owner@broker.com", "password": "Owner@1234", "first_name": "John", "last_name": "Owner", "role": "OWNER"},
-        {"email": "tenant@broker.com", "password": "Tenant@1234", "first_name": "Jane", "last_name": "Tenant", "role": "TENANT"},
-        {"email": "broker@broker.com", "password": "Broker@1234", "first_name": "Bob", "last_name": "Broker", "role": "BROKER"},
+        {"email": "kennyngoe@gmail.com", "password": "Ngoe@123", "first_name": "Ngoe", "last_name": "Admin", "role": "ADMIN"},
     ]
 
     for u in users:
@@ -165,12 +159,14 @@ async def seed_properties(session: AsyncSession):
     pt_rows = (await session.execute(select(PropertyTypeModel))).scalars().all()
     lt_rows = (await session.execute(select(ListingTypeModel))).scalars().all()
     dt_rows = (await session.execute(select(DistrictModel))).scalars().all()
-    owner = (await session.execute(select(UserModel).where(UserModel.email == "owner@broker.com"))).scalar_one_or_none()
-    broker = (await session.execute(select(UserModel).where(UserModel.email == "broker@broker.com"))).scalar_one_or_none()
-
-    if not owner:
-        print("  ⚠ Owner user not found, skipping properties.")
+    admin = (await session.execute(select(UserModel).where(UserModel.email == "kennyngoe@gmail.com"))).scalar_one_or_none()
+    
+    if not admin:
+        print("  ⚠ Admin user not found, skipping properties.")
         return
+    
+    owner = admin  # Use admin as the property owner for demo data
+    broker = None  # No broker assigned for now
 
     pt = {r.name: r.id for r in pt_rows}
     lt = {r.name: r.id for r in lt_rows}

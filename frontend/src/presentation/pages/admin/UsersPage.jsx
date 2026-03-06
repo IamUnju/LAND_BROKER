@@ -3,7 +3,7 @@ import api from "../../../infrastructure/api";
 import Badge from "../../components/Badge";
 import Modal from "../../components/Modal";
 import toast from "react-hot-toast";
-import { HiOutlinePencil, HiOutlineCheck, HiOutlineBan, HiOutlineUserAdd } from "react-icons/hi";
+import { HiOutlinePencil, HiOutlineCheck, HiOutlineBan, HiOutlineUserAdd, HiOutlineKey } from "react-icons/hi";
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -14,6 +14,9 @@ export default function UsersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState({ email: "", password: "", first_name: "", last_name: "", phone: "", role_id: "" });
   const [creating, setCreating] = useState(false);
+  const [passwordUser, setPasswordUser] = useState(null);
+  const [passwordForm, setPasswordForm] = useState({ new_password: "", confirm_password: "" });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const load = async () => {
     const [u, r] = await Promise.all([api.get("/users/"), api.get("/master/roles")]);
@@ -56,7 +59,26 @@ export default function UsersPage() {
       toast.error(Array.isArray(detail) ? detail[0]?.msg : detail || "Error creating user");
     } finally { setCreating(false); }
   };
-
+  const changePassword = async () => {
+    if (!passwordForm.new_password || passwordForm.new_password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await api.patch(`/users/${passwordUser.id}/password`, { new_password: passwordForm.new_password });
+      toast.success(`Password updated for ${passwordUser.first_name} ${passwordUser.last_name}`);
+      setPasswordUser(null);
+      setPasswordForm({ new_password: "", confirm_password: "" });
+    } catch (e) {
+      const detail = e.response?.data?.detail;
+      toast.error(Array.isArray(detail) ? detail[0]?.msg : detail || "Error updating password");
+    } finally { setChangingPassword(false); }
+  };
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -83,8 +105,9 @@ export default function UsersPage() {
                   <td className="px-4 py-3"><Badge status={u.role_name} /></td>
                   <td className="px-4 py-3"><Badge status={u.is_active ? "ACTIVE" : "INACTIVE"} /></td>
                   <td className="px-4 py-3 flex gap-2">
-                    <button onClick={() => openEdit(u)} className="btn-secondary py-1 px-2 text-xs"><HiOutlinePencil /></button>
-                    <button onClick={() => toggle(u)} className={`py-1 px-2 text-xs rounded-lg border ${u.is_active ? "border-red-300 text-red-600 hover:bg-red-50" : "border-green-300 text-green-600 hover:bg-green-50"}`}>
+                    <button onClick={() => openEdit(u)} className="btn-secondary py-1 px-2 text-xs" title="Edit User"><HiOutlinePencil /></button>
+                    <button onClick={() => { setPasswordUser(u); setPasswordForm({ new_password: "", confirm_password: "" }); }} className="btn-secondary py-1 px-2 text-xs" title="Change Password"><HiOutlineKey /></button>
+                    <button onClick={() => toggle(u)} className={`py-1 px-2 text-xs rounded-lg border ${u.is_active ? "border-red-300 text-red-600 hover:bg-red-50" : "border-green-300 text-green-600 hover:bg-green-50"}`} title={u.is_active ? "Deactivate" : "Activate"}>
                       {u.is_active ? <HiOutlineBan /> : <HiOutlineCheck />}
                     </button>
                   </td>
@@ -140,6 +163,48 @@ export default function UsersPage() {
             <div className="flex gap-3 justify-end pt-2">
               <button onClick={() => setEditUser(null)} className="btn-secondary">Cancel</button>
               <button onClick={save} className="btn-primary">Save</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Change Password Modal ── */}
+      {passwordUser && (
+        <Modal title={`Change Password - ${passwordUser.first_name} ${passwordUser.last_name}`} onClose={() => setPasswordUser(null)}>
+          <div className="space-y-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+              <p className="font-medium">Password Requirements:</p>
+              <ul className="list-disc list-inside mt-1 text-xs">
+                <li>Minimum 8 characters</li>
+                <li>At least one uppercase letter</li>
+                <li>At least one digit</li>
+              </ul>
+            </div>
+            <div>
+              <label className="label">New Password</label>
+              <input 
+                type="password" 
+                className="input" 
+                placeholder="Enter new password" 
+                value={passwordForm.new_password} 
+                onChange={(e) => setPasswordForm((f) => ({ ...f, new_password: e.target.value }))} 
+              />
+            </div>
+            <div>
+              <label className="label">Confirm Password</label>
+              <input 
+                type="password" 
+                className="input" 
+                placeholder="Confirm new password" 
+                value={passwordForm.confirm_password} 
+                onChange={(e) => setPasswordForm((f) => ({ ...f, confirm_password: e.target.value }))} 
+              />
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
+              <button onClick={() => setPasswordUser(null)} className="btn-secondary">Cancel</button>
+              <button onClick={changePassword} disabled={changingPassword} className="btn-primary">
+                {changingPassword ? "Updating…" : "Update Password"}
+              </button>
             </div>
           </div>
         </Modal>

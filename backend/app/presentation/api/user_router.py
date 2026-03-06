@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query
-from app.application.dto.user_dto import UserUpdateDTO, UserResponseDTO, UserListDTO, AdminUserCreateDTO
+from app.application.dto.user_dto import UserUpdateDTO, UserResponseDTO, UserListDTO, AdminUserCreateDTO, AdminPasswordUpdateDTO
 from app.application.use_cases.user_use_case import UserUseCase
 from app.presentation.dependencies.di_container import (
     get_user_use_case, get_current_user, require_roles,
@@ -95,3 +95,14 @@ async def deactivate_user(
     use_case: UserUseCase = Depends(get_user_use_case),
 ):
     return await use_case.deactivate_user(user_id)
+
+
+@router.patch("/{user_id}/password", response_model=UserResponseDTO)
+async def update_user_password(
+    user_id: int,
+    dto: AdminPasswordUpdateDTO,
+    _: User = Depends(require_roles("ADMIN")),
+    use_case: UserUseCase = Depends(get_user_use_case),
+):
+    """Admin-only: Update any user's password."""
+    return await use_case.admin_update_password(user_id, dto)

@@ -112,13 +112,6 @@ export default function LoginPage() {
               Register
             </Link>
           </p>
-          <div className="mt-4 rounded-lg bg-gray-50 p-3 text-xs text-gray-500 space-y-1">
-            <p className="font-medium">Test accounts:</p>
-            <p>admin@broker.com / Admin@1234</p>
-            <p>owner@broker.com / Owner@1234</p>
-            <p>tenant@broker.com / Tenant@1234</p>
-            <p>broker@broker.com / Broker@1234</p>
-          </div>
         </div>
         <p className="mt-4 text-center text-sm">
           <Link to="/marketplace" className="text-primary-600 hover:underline">← Browse Marketplace</Link>

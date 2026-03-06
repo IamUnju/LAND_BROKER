@@ -2,7 +2,7 @@ from typing import List, Optional, Dict, Any
 from fastapi import HTTPException, status
 from app.domain.repositories.i_user_repository import IUserRepository
 from app.domain.entities.user import User
-from app.application.dto.user_dto import UserCreateDTO, UserUpdateDTO, UserResponseDTO, AdminUserCreateDTO
+from app.application.dto.user_dto import UserCreateDTO, UserUpdateDTO, UserResponseDTO, AdminUserCreateDTO, AdminPasswordUpdateDTO
 from app.infrastructure.security.password import PasswordHasher
 
 
@@ -74,3 +74,10 @@ class UserUseCase:
             is_verified=True,
         )
         return await self._user_repo.create(user)
+
+    async def admin_update_password(self, user_id: int, dto: AdminPasswordUpdateDTO) -> User:
+        """Admin can update any user's password."""
+        user = await self.get_user(user_id)
+        hashed = self._password_hasher.hash(dto.new_password)
+        user.hashed_password = hashed
+        return await self._user_repo.update(user)
