@@ -5,20 +5,16 @@ echo "Waiting for database..."
 max_retries=30
 retry_count=0
 
-# Create a Python script to test database connection
-python3 << 'EOF' > /tmp/test_db.py
-import asyncio
-import asyncpg
-import sys
+while [ $retry_count -lt $max_retries ]; do
+    if python3 -c "
+import asyncio, asyncpg
 from urllib.parse import urlparse
+import os
 
-async def test_connection():
+async def test():
     try:
-        # Parse DATABASE_URL
-        url = "$DATABASE_URL"
+        url = os.getenv('DATABASE_URL')
         parsed = urlparse(url)
-        
-        # Extract connection parameters
         conn = await asyncpg.connect(
             host=parsed.hostname,
             port=parsed.port or 5432,
@@ -28,18 +24,11 @@ async def test_connection():
         )
         await conn.close()
         return True
-    except Exception as e:
-        print(f"Failed: {e}", file=sys.stderr)
+    except:
         return False
 
-if asyncio.run(test_connection()):
-    sys.exit(0)
-else:
-    sys.exit(1)
-EOF
-
-while [ $retry_count -lt $max_retries ]; do
-    if python3 /tmp/test_db.py 2>/dev/null; then
+exit(0 if asyncio.run(test()) else 1)
+" 2>/dev/null; then
         echo "Database is ready!"
         break
     fi
@@ -53,7 +42,15 @@ if [ $retry_count -eq $max_retries ]; then
 else
     echo "Running migrations..."
     alembic upgrade head || echo "Migrations failed, continuing anyway..."
+    
+    # Run seed script if RUN_SEED env var is set to "true"
+    if [ "$RUN_SEED" = "true" ]; then
+        echo "Running seed script..."
+        python seed.py || echo "Seed script failed, continuing anyway..."
+    fi
 fi
 
 echo "Starting application..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+# Use PORT environment variable if set by Railway, otherwise default to 8000
+PORT=${PORT:-8000}
+exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT" --log-level debug
