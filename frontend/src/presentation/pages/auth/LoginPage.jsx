@@ -93,7 +93,7 @@ export default function LoginPage() {
           <form onSubmit={submit} className="space-y-4">
             <div>
               <label className="label">Email</label>
-              <input name="email" type="email" required className="input" placeholder="you@example.com" value={form.email} onChange={handle} />
+              <input name="email" type="email" required className="input" placeholder="you@gmail.com" value={form.email} onChange={handle} />
             </div>
             <div>
               <label className="label">Password</label>
