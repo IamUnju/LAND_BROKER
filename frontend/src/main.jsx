@@ -9,19 +9,18 @@ import "./index.css";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
-const AppWithProviders = () => (
-  <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-    <AuthProvider>
-      <App />
-      <Toaster position="top-right" toastOptions={{ duration: 3500 }} />
-    </AuthProvider>
-  </BrowserRouter>
-);
-
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    {GOOGLE_CLIENT_ID ? (
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AuthProvider>
+          <App />
+          <Toaster position="top-right" toastOptions={{ duration: 3500 }} />
+        </AuthProvider>
+      </BrowserRouter>
+    </GoogleOAuthProvider>
+  </React.StrictMode>
+);
         <AppWithProviders />
       </GoogleOAuthProvider>
     ) : (
