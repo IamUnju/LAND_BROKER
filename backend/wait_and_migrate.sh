@@ -53,4 +53,5 @@ fi
 echo "Starting application..."
 # Use PORT environment variable if set by Railway, otherwise default to 8000
 PORT=${PORT:-8000}
-exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT" --log-level debug
+# Trust Railway forwarding headers so generated redirect URLs keep https scheme
+exec uvicorn app.main:app --host 0.0.0.0 --port "$PORT" --proxy-headers --forwarded-allow-ips="*" --log-level debug
