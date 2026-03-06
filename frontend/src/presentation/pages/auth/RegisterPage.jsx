@@ -34,6 +34,9 @@ export default function RegisterPage() {
 
   // Call useGoogleLogin hook at top level (required by React hooks rules)
   const handleGoogle = useGoogleLogin({
+    flow: "implicit",
+    ux_mode: "popup",
+    scope: "openid email profile",
     onSuccess: async (tokenResponse) => {
       setGLoading(true);
       try {
