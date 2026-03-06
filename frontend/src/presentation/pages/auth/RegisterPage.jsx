@@ -32,30 +32,24 @@ export default function RegisterPage() {
 
   const hasGoogle = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-  // Only call useGoogleLogin hook when we have a client ID
-  const initGoogleLogin = () => {
-    if (!hasGoogle) return () => {}; // Return dummy function if no client ID
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    return useGoogleLogin({
-      onSuccess: async (tokenResponse) => {
-        setGLoading(true);
-        try {
-          const userData = await googleAuth(tokenResponse.access_token);
-          toast.success(`Welcome, ${userData.first_name}!`);
-          const roleMap = { ADMIN: "/admin", OWNER: "/owner", TENANT: "/tenant", BROKER: "/broker" };
-          navigate(roleMap[userData?.role_name] || "/marketplace", { replace: true });
-        } catch (err) {
-          const detail = err.response?.data?.detail;
-          toast.error(detail || "Google sign-up failed");
-        } finally {
-          setGLoading(false);
-        }
-      },
-      onError: () => toast.error("Google sign-up cancelled or failed"),
-    });
-  };
-
-  const handleGoogle = initGoogleLogin();
+  // Call useGoogleLogin hook at top level (required by React hooks rules)
+  const handleGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setGLoading(true);
+      try {
+        const userData = await googleAuth(tokenResponse.access_token);
+        toast.success(`Welcome, ${userData.first_name}!`);
+        const roleMap = { ADMIN: "/admin", OWNER: "/owner", TENANT: "/tenant", BROKER: "/broker" };
+        navigate(roleMap[userData?.role_name] || "/marketplace", { replace: true });
+      } catch (err) {
+        const detail = err.response?.data?.detail;
+        toast.error(detail || "Google sign-up failed");
+      } finally {
+        setGLoading(false);
+      }
+    },
+    onError: () => toast.error("Google sign-up cancelled or failed"),
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
