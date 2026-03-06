@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [gLoading, setGLoading] = useState(false);
+  const hasGoogle = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const handle = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -34,25 +35,30 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogle = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setGLoading(true);
-      try {
-        const userData = await googleAuth(tokenResponse.access_token);
-        const roleMap = { ADMIN: "/admin", OWNER: "/owner", TENANT: "/tenant", BROKER: "/broker" };
-        navigate(nextPath || roleMap[userData?.role_name] || "/marketplace", { replace: true });
-        toast.success(`Welcome back, ${userData.first_name}!`);
-      } catch (err) {
-        const detail = err.response?.data?.detail;
-        toast.error(detail || "Google sign-in failed");
-      } finally {
-        setGLoading(false);
-      }
-    },
-    onError: () => toast.error("Google sign-in cancelled or failed"),
-  });
+  // Only call useGoogleLogin hook when we have a client ID
+  const initGoogleLogin = () => {
+    if (!hasGoogle) return () => {}; // Return dummy function if no client ID
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    return useGoogleLogin({
+      onSuccess: async (tokenResponse) => {
+        setGLoading(true);
+        try {
+          const userData = await googleAuth(tokenResponse.access_token);
+          const roleMap = { ADMIN: "/admin", OWNER: "/owner", TENANT: "/tenant", BROKER: "/broker" };
+          navigate(nextPath || roleMap[userData?.role_name] || "/marketplace", { replace: true });
+          toast.success(`Welcome back, ${userData.first_name}!`);
+        } catch (err) {
+          const detail = err.response?.data?.detail;
+          toast.error(detail || "Google sign-in failed");
+        } finally {
+          setGLoading(false);
+        }
+      },
+      onError: () => toast.error("Google sign-in cancelled or failed"),
+    });
+  };
 
-  const hasGoogle = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const handleGoogle = initGoogleLogin();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
