@@ -17,8 +17,16 @@ class Settings(BaseSettings):
     def ALLOWED_ORIGINS(self) -> List[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS_STR.split(",") if o.strip()]
 
-    # Database
+    # Database — auto-convert Railway's postgresql:// to postgresql+asyncpg://
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@db:5432/broker_db"
+
+    @property
+    def ASYNC_DATABASE_URL(self) -> str:
+        url = self.DATABASE_URL
+        if url.startswith("postgresql://") or url.startswith("postgres://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        return url
 
     # JWT
     JWT_ALGORITHM: str = "HS256"
