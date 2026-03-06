@@ -10,6 +10,7 @@ from app.presentation.api.business_routers import (
     maintenance_router, inquiry_router, favorites_router, commission_router,
 )
 from app.presentation.api.admin_router import router as admin_router, public_router as master_router
+from app.presentation.api.migration_router import router as migration_router
 
 settings = get_settings()
 
@@ -44,6 +45,7 @@ app.include_router(favorites_router, prefix=API_PREFIX)
 app.include_router(commission_router, prefix=API_PREFIX)
 app.include_router(admin_router, prefix=API_PREFIX)
 app.include_router(master_router, prefix=API_PREFIX)
+app.include_router(migration_router, prefix=API_PREFIX)  # One-time migration endpoint
 
 
 @app.get("/")
