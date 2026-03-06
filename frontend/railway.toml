@@ -3,6 +3,8 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 # Use the production stage (nginx) — not the dev stage
 dockerBuildTarget = "production"
+# Pass environment variables as Docker build args
+buildArgs = "VITE_API_BASE_URL,VITE_GOOGLE_CLIENT_ID"
 
 [deploy]
 restartPolicyType = "on_failure"
