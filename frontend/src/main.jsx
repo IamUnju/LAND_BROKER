@@ -21,10 +21,3 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     </GoogleOAuthProvider>
   </React.StrictMode>
 );
-        <AppWithProviders />
-      </GoogleOAuthProvider>
-    ) : (
-      <AppWithProviders />
-    )}
-  </React.StrictMode>
-);
