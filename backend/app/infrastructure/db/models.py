@@ -71,6 +71,20 @@ class ListingTypeModel(Base):
     properties = relationship("PropertyModel", back_populates="listing_type")
 
 
+class CurrencyModel(Base):
+    __tablename__ = "currencies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+    code = Column(String(10), unique=True, nullable=False)
+    symbol = Column(String(10), nullable=False)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    properties = relationship("PropertyModel", back_populates="currency")
+
+
 class RegionModel(Base):
     __tablename__ = "regions"
 
@@ -106,6 +120,7 @@ class PropertyModel(Base):
     property_type_id = Column(Integer, ForeignKey("property_types.id", ondelete="RESTRICT"), nullable=False)
     listing_type_id = Column(Integer, ForeignKey("listing_types.id", ondelete="RESTRICT"), nullable=False)
     district_id = Column(Integer, ForeignKey("districts.id", ondelete="RESTRICT"), nullable=False)
+    currency_id = Column(Integer, ForeignKey("currencies.id", ondelete="RESTRICT"), nullable=False)
     price = Column(Numeric(14, 2), nullable=False)
     bedrooms = Column(Integer, default=0)
     bathrooms = Column(Integer, default=0)
@@ -125,6 +140,7 @@ class PropertyModel(Base):
     property_type = relationship("PropertyTypeModel", back_populates="properties")
     listing_type = relationship("ListingTypeModel", back_populates="properties")
     district = relationship("DistrictModel", back_populates="properties")
+    currency = relationship("CurrencyModel", back_populates="properties")
     units = relationship("UnitModel", back_populates="property", cascade="all, delete-orphan")
     inquiries = relationship("InquiryModel", back_populates="property", cascade="all, delete-orphan")
     favorites = relationship("FavoriteModel", back_populates="property", cascade="all, delete-orphan")

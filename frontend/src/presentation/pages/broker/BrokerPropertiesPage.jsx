@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import api from "../../../infrastructure/api";
-import Modal from "../../components/Modal";
 import Badge from "../../components/Badge";
 import toast from "react-hot-toast";
 import { HiOutlinePencil, HiOutlineEye, HiOutlineEyeOff } from "react-icons/hi";
@@ -8,8 +7,15 @@ import { HiOutlinePencil, HiOutlineEye, HiOutlineEyeOff } from "react-icons/hi";
 function emptyForm() {
   return {
     title: "", description: "", address: "", price: "", bedrooms: "",
-    bathrooms: "", is_furnished: false, property_type_id: "", listing_type_id: "", district_id: "",
+    bathrooms: "", is_furnished: false, property_type_id: "", listing_type_id: "", district_id: "", amenities_text: "",
   };
+}
+
+function parseAmenities(value) {
+  return value
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 export default function BrokerPropertiesPage() {
@@ -17,7 +23,7 @@ export default function BrokerPropertiesPage() {
   const [districts, setDistricts] = useState([]);
   const [propTypes, setPropTypes] = useState([]);
   const [listTypes, setListTypes] = useState([]);
-  const [modal, setModal] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState(emptyForm());
   const [loading, setLoading] = useState(true);
 
@@ -53,8 +59,15 @@ export default function BrokerPropertiesPage() {
       property_type_id: p.property_type_id,
       listing_type_id: p.listing_type_id,
       district_id: p.district_id ?? "",
+      amenities_text: (p.amenities ?? []).map((a) => a.name).filter(Boolean).join("\n"),
     });
-    setModal({ item: p });
+    setEditingItem(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const closeEdit = () => {
+    setEditingItem(null);
+    setForm(emptyForm());
   };
 
   const handleChange = (e) => {
@@ -71,11 +84,12 @@ export default function BrokerPropertiesPage() {
       property_type_id: Number(form.property_type_id),
       listing_type_id: Number(form.listing_type_id),
       district_id: form.district_id ? Number(form.district_id) : null,
+      amenities: parseAmenities(form.amenities_text),
     };
     try {
-      await api.put(`/properties/${modal.item.id}`, payload);
+      await api.put(`/properties/${editingItem.id}`, payload);
       toast.success("Property updated!");
-      setModal(null);
+      closeEdit();
       load();
     } catch (e) {
       toast.error(e.response?.data?.detail || "Error saving property");
@@ -94,68 +108,26 @@ export default function BrokerPropertiesPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold text-gray-800">Assigned Properties</h2>
         <span className="text-sm text-gray-500">{items.length} propert{items.length !== 1 ? "ies" : "y"} assigned to you</span>
       </div>
 
-      {loading ? (
-        <p className="text-gray-400">Loading…</p>
-      ) : items.length === 0 ? (
-        <div className="card p-8 text-center text-gray-400">No properties assigned to you yet.</div>
-      ) : (
-        <div className="card p-0 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                {["Title", "Address", "Type", "Price", "Owner", "Status", "Actions"].map((h) => (
-                  <th key={h} className="table-header px-4 py-3">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {items.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium">{p.title}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">{p.address}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{p.property_type_name}</td>
-                  <td className="px-4 py-3 text-sm">{p.price ? `$${Number(p.price).toLocaleString()}` : "—"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{p.host_name || "—"}</td>
-                  <td className="px-4 py-3"><Badge status={p.is_published ? "ACTIVE" : "INACTIVE"} /></td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <button
-                      onClick={() => openEdit(p)}
-                      className="btn-secondary py-1 px-2 text-xs"
-                      title="Edit"
-                    >
-                      <HiOutlinePencil />
-                    </button>
-                    <button
-                      onClick={() => togglePublish(p)}
-                      className="btn-secondary py-1 px-2 text-xs"
-                      title={p.is_published ? "Unpublish" : "Publish"}
-                    >
-                      {p.is_published ? <HiOutlineEyeOff /> : <HiOutlineEye />}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {modal && (
-        <Modal title="Edit Property" onClose={() => setModal(null)}>
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+      {editingItem && (
+        <div className="card space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-lg font-semibold text-gray-800">Edit Property</h3>
+            <button onClick={closeEdit} className="btn-secondary w-full sm:w-auto">Cancel</button>
+          </div>
+          <div className="space-y-3">
             <div><label className="label">Title</label><input name="title" className="input" value={form.title} onChange={handleChange} /></div>
             <div><label className="label">Address</label><input name="address" className="input" value={form.address} onChange={handleChange} /></div>
             <div><label className="label">Description</label><textarea name="description" rows={2} className="input" value={form.description} onChange={handleChange} /></div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><label className="label">Price</label><input name="price" type="number" className="input" value={form.price} onChange={handleChange} /></div>
               <div><label className="label">Bedrooms</label><input name="bedrooms" type="number" className="input" value={form.bedrooms} onChange={handleChange} /></div>
               <div><label className="label">Bathrooms</label><input name="bathrooms" type="number" className="input" value={form.bathrooms} onChange={handleChange} /></div>
-              <div className="flex items-center gap-2 mt-5">
+              <div className="flex items-center gap-2 mt-6">
                 <input name="is_furnished" type="checkbox" checked={form.is_furnished} onChange={handleChange} className="h-4 w-4" />
                 <label className="text-sm">Furnished</label>
               </div>
@@ -181,13 +153,73 @@ export default function BrokerPropertiesPage() {
                 {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
-            <div className="flex gap-3 justify-end pt-2">
-              <button onClick={() => setModal(null)} className="btn-secondary">Cancel</button>
+            <div>
+              <label className="label">What this place offers</label>
+              <textarea
+                name="amenities_text"
+                rows={4}
+                className="input"
+                value={form.amenities_text}
+                onChange={handleChange}
+                placeholder={"WiFi\nAir conditioning\nParking"}
+              />
+            </div>
+            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-1">
+              <button onClick={closeEdit} className="btn-secondary">Cancel</button>
               <button onClick={save} className="btn-primary">Save</button>
             </div>
           </div>
-        </Modal>
+        </div>
       )}
+
+      {loading ? (
+        <p className="text-gray-400">Loading…</p>
+      ) : items.length === 0 ? (
+        <div className="card p-8 text-center text-gray-400">No properties assigned to you yet.</div>
+      ) : (
+        <div className="card p-0 overflow-x-auto">
+          <table className="min-w-[900px] w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                {["Title", "Address", "Type", "Price", "Owner", "Status", "Actions"].map((h) => (
+                  <th key={h} className="table-header px-4 py-3">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {items.map((p) => (
+                <tr key={p.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium">{p.title}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">{p.address}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{p.property_type_name}</td>
+                  <td className="px-4 py-3 text-sm">{p.price ? `$${Number(p.price).toLocaleString()}` : "—"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{p.host_name || "—"}</td>
+                  <td className="px-4 py-3"><Badge status={p.is_published ? "ACTIVE" : "INACTIVE"} /></td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2 min-w-[84px]">
+                    <button
+                      onClick={() => openEdit(p)}
+                      className="btn-secondary py-1 px-2 text-xs"
+                      title="Edit"
+                    >
+                      <HiOutlinePencil />
+                    </button>
+                    <button
+                      onClick={() => togglePublish(p)}
+                      className="btn-secondary py-1 px-2 text-xs"
+                      title={p.is_published ? "Unpublish" : "Publish"}
+                    >
+                      {p.is_published ? <HiOutlineEyeOff /> : <HiOutlineEye />}
+                    </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
     </div>
   );
 }

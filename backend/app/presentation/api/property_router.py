@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException, Request
 from typing import Optional
 from decimal import Decimal
+from pathlib import Path
+from uuid import uuid4
 from app.application.dto.property_dto import (
     PropertyCreateDTO, PropertyUpdateDTO, PropertyResponseDTO,
-    PropertyListDTO, PropertyFilterDTO, PropertyDetailDTO,
+    PropertyListDTO, PropertyFilterDTO, PropertyDetailDTO, PropertyImageUploadResponseDTO,
 )
 from app.application.use_cases.property_use_case import PropertyUseCase
 from app.presentation.dependencies.di_container import (
@@ -12,6 +14,9 @@ from app.presentation.dependencies.di_container import (
 from app.domain.entities.user import User
 
 router = APIRouter(prefix="/properties", tags=["Properties"])
+UPLOAD_DIR = Path(__file__).resolve().parents[2] / "uploads" / "properties"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 
 # ── Role name helper ──────────────────────────────────────────────────────────
 def _role(user: User) -> str:
@@ -99,6 +104,31 @@ async def create_property(
     use_case: PropertyUseCase = Depends(get_property_use_case),
 ):
     return await use_case.create_property(dto, owner_id=current_user.id)
+
+
+@router.post("/upload-images", response_model=PropertyImageUploadResponseDTO)
+async def upload_property_images(
+    request: Request,
+    files: list[UploadFile] = File(...),
+    current_user: User = Depends(require_roles("OWNER", "BROKER", "ADMIN")),
+):
+    del current_user
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded")
+
+    saved_urls: list[str] = []
+    for file in files:
+        suffix = Path(file.filename or "").suffix.lower()
+        if suffix not in ALLOWED_IMAGE_EXTS:
+            raise HTTPException(status_code=400, detail=f"Unsupported file type: {suffix or 'unknown'}")
+
+        safe_name = f"{uuid4().hex}{suffix}"
+        destination = UPLOAD_DIR / safe_name
+        contents = await file.read()
+        destination.write_bytes(contents)
+        saved_urls.append(str(request.base_url).rstrip("/") + f"/uploads/properties/{safe_name}")
+
+    return PropertyImageUploadResponseDTO(images=saved_urls)
 
 
 # ── GET /{id} ────────────────────────────────────────────────────────────────

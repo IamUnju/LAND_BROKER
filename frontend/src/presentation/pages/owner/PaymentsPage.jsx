@@ -24,7 +24,7 @@ export default function PaymentsPage() {
       <h2 className="text-xl font-bold text-gray-800">Payments</h2>
       {loading ? <p className="text-gray-400">Loading…</p> : (
         <div className="card p-0 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-[820px] w-full divide-y divide-gray-200">
             <thead><tr>{["Lease #", "Due Date", "Amount", "Status", "Paid On", "Actions"].map((h) => <th key={h} className="table-header px-4 py-3">{h}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-100">
               {payments.map((p) => (
@@ -36,7 +36,7 @@ export default function PaymentsPage() {
                   <td className="px-4 py-3 text-sm text-gray-500">{p.paid_date ?? "—"}</td>
                   <td className="px-4 py-3">
                     {p.status === "PENDING" && (
-                      <button onClick={() => markPaid(p.id)} className="btn-secondary py-1 px-2 text-xs flex items-center gap-1"><HiOutlineCheck />Mark Paid</button>
+                      <button onClick={() => markPaid(p.id)} className="btn-secondary py-1 px-2 text-xs inline-flex items-center gap-1 whitespace-nowrap"><HiOutlineCheck />Mark Paid</button>
                     )}
                   </td>
                 </tr>

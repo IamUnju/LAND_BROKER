@@ -3,13 +3,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.domain.repositories.i_master_repositories import (
     IRoleRepository, IPropertyTypeRepository, IListingTypeRepository,
-    IRegionRepository, IDistrictRepository,
+    IRegionRepository, IDistrictRepository, ICurrencyRepository,
 )
 from app.domain.entities.role import Role
 from app.domain.entities.property_type import PropertyType, ListingType
 from app.domain.entities.location import Region, District
+from app.domain.entities.currency import Currency
 from app.infrastructure.db.models import (
-    RoleModel, PropertyTypeModel, ListingTypeModel, RegionModel, DistrictModel,
+    RoleModel, PropertyTypeModel, ListingTypeModel, RegionModel, DistrictModel, CurrencyModel,
 )
 
 
@@ -237,6 +238,65 @@ class DistrictRepository(IDistrictRepository):
 
     async def delete(self, district_id: int) -> bool:
         result = await self._session.execute(select(DistrictModel).where(DistrictModel.id == district_id))
+        model = result.scalar_one_or_none()
+        if not model:
+            return False
+        await self._session.delete(model)
+        await self._session.flush()
+        return True
+
+
+class CurrencyRepository(ICurrencyRepository):
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    def _to_entity(self, model: CurrencyModel) -> Currency:
+        return Currency(
+            id=model.id,
+            name=model.name,
+            code=model.code,
+            symbol=model.symbol,
+            description=model.description,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
+
+    async def create(self, currency: Currency) -> Currency:
+        model = CurrencyModel(
+            name=currency.name,
+            code=currency.code,
+            symbol=currency.symbol,
+            description=currency.description,
+        )
+        self._session.add(model)
+        await self._session.flush()
+        await self._session.refresh(model)
+        return self._to_entity(model)
+
+    async def get_by_id(self, currency_id: int) -> Optional[Currency]:
+        result = await self._session.execute(select(CurrencyModel).where(CurrencyModel.id == currency_id))
+        model = result.scalar_one_or_none()
+        return self._to_entity(model) if model else None
+
+    async def get_all(self) -> List[Currency]:
+        result = await self._session.execute(select(CurrencyModel).order_by(CurrencyModel.name))
+        return [self._to_entity(m) for m in result.scalars().all()]
+
+    async def update(self, currency: Currency) -> Currency:
+        result = await self._session.execute(select(CurrencyModel).where(CurrencyModel.id == currency.id))
+        model = result.scalar_one_or_none()
+        if not model:
+            raise ValueError(f"Currency {currency.id} not found")
+        model.name = currency.name
+        model.code = currency.code
+        model.symbol = currency.symbol
+        model.description = currency.description
+        await self._session.flush()
+        await self._session.refresh(model)
+        return self._to_entity(model)
+
+    async def delete(self, currency_id: int) -> bool:
+        result = await self._session.execute(select(CurrencyModel).where(CurrencyModel.id == currency_id))
         model = result.scalar_one_or_none()
         if not model:
             return False

@@ -28,10 +28,10 @@ export default function AdminBrokersPage() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-gray-800">Brokers</h2>
-      <div className="flex gap-4 h-[calc(100vh-180px)]">
+      <div className="flex flex-col gap-4 lg:flex-row lg:h-[calc(100vh-180px)]">
 
         {/* ── Broker list ── */}
-        <div className="w-80 flex-shrink-0 card p-0 overflow-y-auto">
+        <div className="w-full lg:w-80 lg:flex-shrink-0 card p-0 overflow-y-auto">
           {loadingBrokers ? (
             <p className="p-4 text-gray-400 text-sm">Loading…</p>
           ) : brokers.length === 0 ? (
@@ -58,7 +58,7 @@ export default function AdminBrokersPage() {
         </div>
 
         {/* ── Broker detail panel ── */}
-        <div className="flex-1 overflow-y-auto space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 min-h-[360px] lg:min-h-0">
           {!selected ? (
             <div className="card h-full flex items-center justify-center text-gray-400">
               <div className="text-center">
@@ -79,7 +79,7 @@ export default function AdminBrokersPage() {
                   </div>
                   <Badge status={selected.is_active ? "ACTIVE" : "INACTIVE"} />
                 </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-center gap-2 text-gray-600">
                     <HiOutlineMail className="h-4 w-4 text-gray-400" />
                     {selected.email}
@@ -96,7 +96,7 @@ export default function AdminBrokersPage() {
               </div>
 
               {/* Properties table */}
-              <div className="card p-0 overflow-hidden">
+              <div className="card p-0 overflow-x-auto">
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
                   <HiOutlineOfficeBuilding className="h-4 w-4 text-gray-500" />
                   <span className="font-medium text-gray-700 text-sm">
@@ -108,7 +108,7 @@ export default function AdminBrokersPage() {
                 ) : properties.length === 0 ? (
                   <p className="p-4 text-gray-400 text-sm">No properties assigned to this broker.</p>
                 ) : (
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-[760px] w-full divide-y divide-gray-200">
                     <thead>
                       <tr>
                         {["Title", "Address", "Type", "Price", "Owner", "Status"].map((h) => (

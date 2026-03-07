@@ -24,6 +24,7 @@ from app.application.dto.master_dto import (
     ListingTypeCreateDTO, ListingTypeUpdateDTO, ListingTypeResponseDTO,
     RegionCreateDTO, RegionUpdateDTO, RegionResponseDTO,
     DistrictCreateDTO, DistrictUpdateDTO, DistrictResponseDTO,
+    CurrencyCreateDTO, CurrencyUpdateDTO, CurrencyResponseDTO,
     StatsDTO,
 )
 
@@ -45,5 +46,6 @@ __all__ = [
     "ListingTypeCreateDTO", "ListingTypeUpdateDTO", "ListingTypeResponseDTO",
     "RegionCreateDTO", "RegionUpdateDTO", "RegionResponseDTO",
     "DistrictCreateDTO", "DistrictUpdateDTO", "DistrictResponseDTO",
+    "CurrencyCreateDTO", "CurrencyUpdateDTO", "CurrencyResponseDTO",
     "StatsDTO",
 ]

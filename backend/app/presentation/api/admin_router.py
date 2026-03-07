@@ -7,6 +7,7 @@ from app.application.dto.master_dto import (
     ListingTypeCreateDTO, ListingTypeUpdateDTO, ListingTypeResponseDTO,
     RegionCreateDTO, RegionUpdateDTO, RegionResponseDTO,
     DistrictCreateDTO, DistrictUpdateDTO, DistrictResponseDTO,
+    CurrencyCreateDTO, CurrencyUpdateDTO, CurrencyResponseDTO,
     StatsDTO,
 )
 from app.application.use_cases.master_use_case import MasterUseCase
@@ -56,6 +57,11 @@ async def list_districts(
     use_case: MasterUseCase = Depends(get_master_use_case),
 ):
     return await use_case.list_districts(region_id=region_id)
+
+
+@public_router.get("/currencies", response_model=List[CurrencyResponseDTO])
+async def list_currencies(use_case: MasterUseCase = Depends(get_master_use_case)):
+    return await use_case.list_currencies()
 
 
 # ─── ADMIN-ONLY Master Data CRUD ─────────────────────────────────────────────
@@ -197,6 +203,34 @@ async def delete_district(
     use_case: MasterUseCase = Depends(get_master_use_case),
 ):
     await use_case.delete_district(district_id)
+
+
+@router.post("/currencies", response_model=CurrencyResponseDTO, status_code=201)
+async def create_currency(
+    dto: CurrencyCreateDTO,
+    _: User = Depends(require_roles("ADMIN")),
+    use_case: MasterUseCase = Depends(get_master_use_case),
+):
+    return await use_case.create_currency(dto)
+
+
+@router.put("/currencies/{currency_id}", response_model=CurrencyResponseDTO)
+async def update_currency(
+    currency_id: int,
+    dto: CurrencyUpdateDTO,
+    _: User = Depends(require_roles("ADMIN")),
+    use_case: MasterUseCase = Depends(get_master_use_case),
+):
+    return await use_case.update_currency(currency_id, dto)
+
+
+@router.delete("/currencies/{currency_id}", status_code=204)
+async def delete_currency(
+    currency_id: int,
+    _: User = Depends(require_roles("ADMIN")),
+    use_case: MasterUseCase = Depends(get_master_use_case),
+):
+    await use_case.delete_currency(currency_id)
 
 
 @router.get("/stats", response_model=StatsDTO)

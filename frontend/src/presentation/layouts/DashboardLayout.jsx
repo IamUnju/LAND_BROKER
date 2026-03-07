@@ -1,11 +1,21 @@
 import { useState } from "react";
-import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
-  HiOutlineHome, HiOutlineUsers, HiOutlineOfficeBuilding, HiOutlineKey,
-  HiOutlineDocumentText, HiOutlineCurrencyDollar, HiOutlineCog,
-  HiOutlineHeart, HiOutlineChatAlt2, HiOutlineChartBar, HiOutlineDatabase,
-  HiOutlineLogout, HiOutlineBriefcase, HiOutlineMenu, HiOutlineX,
+  HiOutlineHome,
+  HiOutlineUsers,
+  HiOutlineOfficeBuilding,
+  HiOutlineKey,
+  HiOutlineDocumentText,
+  HiOutlineCurrencyDollar,
+  HiOutlineCog,
+  HiOutlineHeart,
+  HiOutlineChatAlt2,
+  HiOutlineChartBar,
+  HiOutlineDatabase,
+  HiOutlineLogout,
+  HiOutlineBriefcase,
+  HiOutlineMenu,
 } from "react-icons/hi";
 
 const navConfig = {
@@ -45,7 +55,6 @@ const navConfig = {
   ],
 };
 
-// Tooltip Component
 function Tooltip({ text, children }) {
   return (
     <div className="group relative inline-flex">
@@ -61,70 +70,49 @@ function Tooltip({ text, children }) {
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const links = navConfig[user?.role_name] || [];
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
-  const handleLogout = () => { 
-    logout(); 
-    navigate("/login"); 
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
   };
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const closeMobileSidebar = () => setShowMobileSidebar(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
-      {/* Mobile menu button */}
-      <div className="md:hidden fixed top-4 left-4 z-50">
-        <button
-          onClick={() => setShowMobileSidebar(!showMobileSidebar)}
-          className="rounded-lg bg-primary-900 p-2 text-white hover:bg-primary-800 transition-colors"
-        >
-          {showMobileSidebar ? (
-            <HiOutlineX className="h-6 w-6" />
-          ) : (
-            <HiOutlineMenu className="h-6 w-6" />
-          )}
-        </button>
-      </div>
-
-      {/* Overlay for mobile */}
+    <div className="flex h-screen overflow-hidden bg-[#eef2f6]">
       {showMobileSidebar && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
-          onClick={closeMobileSidebar}
-        />
+        <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={closeMobileSidebar} />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`${
           showMobileSidebar ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 transition-all duration-300 fixed md:static z-40 flex h-screen flex-col bg-gradient-to-b from-primary-900 to-primary-950 text-white ${
-          sidebarOpen ? "w-64" : "w-20"
+        } fixed z-40 flex h-screen w-72 flex-col border-r border-[#d7dde7] bg-[#f6f8fb] transition-all duration-300 md:static md:w-auto md:translate-x-0 ${
+          sidebarOpen ? "md:w-64" : "md:w-20"
         }`}
       >
-        {/* Header */}
-        <div className="flex h-16 items-center justify-between px-4 border-b border-primary-700">
-          {sidebarOpen && (
-            <span className="text-lg font-bold tracking-tight">🏠 BrokerSaaS</span>
-          )}
+        <div className="flex h-16 items-center justify-between border-b border-[#2e395d] bg-[#1f2742] px-3.5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#d4d9e7] text-[#1f2742]">
+              <HiOutlineHome className="h-5 w-5" />
+            </div>
+            {sidebarOpen && <span className="truncate text-lg font-semibold tracking-tight text-white">Broker</span>}
+          </div>
           <button
             onClick={toggleSidebar}
-            className="hidden md:flex rounded-lg p-2 hover:bg-primary-800 transition-colors text-primary-200"
+            className="hidden rounded-lg p-2 text-[#cfd7ee] md:flex"
             title={sidebarOpen ? "Collapse" : "Expand"}
           >
-            {sidebarOpen ? (
-              <HiOutlineX className="h-5 w-5" />
-            ) : (
-              <HiOutlineMenu className="h-5 w-5" />
-            )}
+            <HiOutlineMenu className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-2">
+        <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-4">
           {links.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
@@ -132,10 +120,12 @@ export default function DashboardLayout() {
               end={end}
               onClick={closeMobileSidebar}
               className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                `group flex items-center ${sidebarOpen ? "gap-3" : "justify-center"} rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
                   isActive
-                    ? "bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-md"
-                    : "text-primary-100 hover:bg-primary-800 hover:text-white"
+                    ? sidebarOpen
+                      ? "bg-[#0b6f26] text-white shadow-sm"
+                      : "bg-[#dfece3] text-[#0b6f26]"
+                    : "text-[#0f172a] hover:bg-[#eaf0ec]"
                 }`
               }
             >
@@ -146,27 +136,26 @@ export default function DashboardLayout() {
                 </>
               ) : (
                 <Tooltip text={label}>
-                  <Icon className="h-5 w-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
+                  <Icon className="h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110" />
                 </Tooltip>
               )}
             </NavLink>
           ))}
         </nav>
 
-        {/* User Profile & Logout */}
-        <div className="border-t border-primary-700 bg-primary-800 bg-opacity-50 p-3 space-y-3">
+        <div className="space-y-3 border-t border-[#d7dde7] bg-white p-3">
           {sidebarOpen ? (
             <>
               <div className="px-2">
-                <p className="text-xs text-primary-300 mb-1">Signed in as</p>
-                <p className="text-sm font-medium truncate text-white">{user?.email}</p>
-                <span className="mt-1.5 inline-block rounded bg-primary-600 px-2 py-0.5 text-xs font-semibold text-primary-100">
+                <p className="mb-1 text-xs text-[#64748b]">Signed in as</p>
+                <p className="truncate text-sm font-medium text-[#111827]">{user?.email}</p>
+                <span className="mt-1.5 inline-block rounded bg-[#eaf0ec] px-2 py-0.5 text-xs font-semibold text-[#0b6f26]">
                   {user?.role_name}
                 </span>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-primary-100 hover:bg-primary-700 hover:text-white transition-all duration-200"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[#1f2937] transition-all duration-200 hover:bg-[#f2f4f8]"
               >
                 <HiOutlineLogout className="h-5 w-5" /> Logout
               </button>
@@ -175,26 +164,34 @@ export default function DashboardLayout() {
             <Tooltip text={`Logout (${user?.email})`}>
               <button
                 onClick={handleLogout}
-                className="flex w-full justify-center rounded-lg p-2 text-sm text-primary-100 hover:bg-primary-700 hover:text-white transition-all duration-200"
+                className="flex w-full justify-center rounded-lg p-2 text-sm text-[#1f2937] transition-all duration-200 hover:bg-[#f2f4f8]"
               >
-                <HiOutlineLogout className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                <HiOutlineLogout className="h-5 w-5 transition-transform group-hover:scale-110" />
               </button>
             </Tooltip>
           )}
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
-          <h1 className="text-lg font-semibold text-gray-800">
-            {links.find((l) => l.to === location.pathname)?.label ?? "Dashboard"}
-          </h1>
-          <NavLink to="/marketplace" className="text-sm text-primary-600 hover:underline font-medium">
-            ← Marketplace
+        <header className="flex h-16 items-center justify-between border-b border-[#dde3ec] bg-white px-3 shadow-sm sm:px-4 md:px-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+              className="rounded-lg p-2 text-gray-800 md:hidden"
+            >
+              <HiOutlineMenu className="h-6 w-6" />
+            </button>
+            <h1 className="text-lg font-semibold text-gray-800">
+              {links.find((l) => l.to === location.pathname)?.label ?? "Dashboard"}
+            </h1>
+          </div>
+          <NavLink to="/marketplace" className="text-xs font-medium text-primary-600 hover:underline sm:text-sm">
+            <span className="hidden sm:inline">Marketplace</span>
+            <span className="sm:hidden">Market</span>
           </NavLink>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
           <Outlet />
         </main>
       </div>

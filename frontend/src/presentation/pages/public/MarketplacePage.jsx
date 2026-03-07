@@ -40,9 +40,10 @@ function PropertyCard({ p, index, favorited, onFavorite }) {
     || PHOTOS[index % PHOTOS.length];
   const rating = getRating(p.id);
   const [imgError, setImgError] = useState(false);
+  const currencyLabel = p.currency_symbol || p.currency_code || "GH₵";
 
   return (
-    <Link to={`/properties/${p.id}`} className="group block cursor-pointer">
+    <Link to={`/marketplace/${p.id}`} className="group block cursor-pointer">
       {/* Image */}
       <div className="relative overflow-hidden rounded-2xl aspect-[4/3] bg-gray-200">
         {!imgError ? (
@@ -87,7 +88,7 @@ function PropertyCard({ p, index, favorited, onFavorite }) {
         </div>
         <p className="text-sm text-gray-500 truncate">{p.bedrooms ?? 0} bed · {p.bathrooms ?? 0} bath{p.is_furnished ? " · Furnished" : ""}</p>
         <p className="mt-1 text-sm text-gray-800">
-          <span className="font-semibold">GH₵ {Number(p.price).toLocaleString()}</span>
+          <span className="font-semibold">{currencyLabel} {Number(p.price).toLocaleString()}</span>
           <span className="text-gray-500"> / {p.listing_type_name?.toLowerCase().includes("rent") ? "month" : "total"}</span>
         </p>
         {/* Contact badge */}
@@ -183,13 +184,13 @@ export default function MarketplacePage() {
     <div className="min-h-screen bg-white">
       {/* ─── Navbar ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-gray-100 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-3">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4 md:gap-4 md:px-6">
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-1.5 text-rose-500">
             <svg viewBox="0 0 32 32" className="h-8 w-8 fill-current" aria-hidden="true">
               <path d="M16 1C9 1 1 12.5 1 19.5 1 25.3 7.7 31 16 31s15-5.7 15-11.5C31 12.5 23 1 16 1zm0 26c-6.6 0-12-4.7-12-9.5C4 11.8 11.1 4 16 4s12 7.8 12 13.5C28 22.3 22.6 27 16 27z"/>
             </svg>
-            <span className="text-xl font-bold tracking-tight">BrokerSaaS</span>
+            <span className="hidden text-xl font-bold tracking-tight sm:inline">BrokerSaaS</span>
           </Link>
 
           {/* Search bar */}
@@ -208,11 +209,11 @@ export default function MarketplacePage() {
           </div>
 
           {/* Right actions */}
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {user ? (
               <button
                 onClick={() => navigate("/dashboard")}
-                className="rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-gray-50 transition-colors sm:px-4 sm:py-2 sm:text-sm"
               >
                 Dashboard
               </button>
@@ -220,13 +221,13 @@ export default function MarketplacePage() {
               <>
                 <Link
                   to="/login"
-                  className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="rounded-full px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 transition-colors sm:px-4 sm:py-2 sm:text-sm"
                 >
                   Log in
                 </Link>
                 <Link
                   to="/register"
-                  className="rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white hover:bg-rose-600 transition-colors"
+                  className="rounded-full bg-rose-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-600 transition-colors sm:px-4 sm:py-2 sm:text-sm"
                 >
                   Sign up
                 </Link>
@@ -237,8 +238,8 @@ export default function MarketplacePage() {
       </header>
 
       {/* ─── Category + Filter bar ───────────────────────────── */}
-      <div className="sticky top-[65px] z-30 border-b border-gray-100 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center gap-2 px-6 py-3">
+      <div className="sticky top-[64px] z-30 border-b border-gray-100 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-3 sm:px-4 md:px-6">
           {/* Scroll left */}
           <button onClick={() => scrollCats(-1)} className="shrink-0 rounded-full border border-gray-200 p-1.5 text-gray-600 hover:bg-gray-50 hidden sm:flex">
             <HiChevronLeft className="h-4 w-4" />
@@ -295,7 +296,7 @@ export default function MarketplacePage() {
 
         {/* Expanded filter panel */}
         {showFilters && (
-          <div className="border-t border-gray-100 bg-white px-6 py-4">
+          <div className="border-t border-gray-100 bg-white px-3 py-4 sm:px-4 md:px-6">
             <div className="mx-auto flex max-w-7xl flex-wrap gap-4">
               {/* Listing type */}
               <div>
@@ -342,7 +343,7 @@ export default function MarketplacePage() {
       </div>
 
       {/* ─── Results grid ────────────────────────────────────── */}
-      <main className="mx-auto max-w-7xl px-6 py-8">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-4 md:px-6 md:py-8">
         {!loading && (
           <p className="mb-5 text-sm text-gray-500">
             {total > 0 ? `${total} properties found` : ""}

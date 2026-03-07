@@ -11,6 +11,7 @@ class Property:
     property_type_id: int
     listing_type_id: int
     district_id: int
+    currency_id: int
     price: Decimal
     bedrooms: int = 0
     bathrooms: int = 0
@@ -30,6 +31,9 @@ class Property:
     listing_type_name: Optional[str] = None
     district_name: Optional[str] = None
     region_name: Optional[str] = None
+    currency_name: Optional[str] = None
+    currency_code: Optional[str] = None
+    currency_symbol: Optional[str] = None
     # Rich detail fields
     images: List = field(default_factory=list)
     amenities: List = field(default_factory=list)
@@ -59,6 +63,8 @@ class Property:
             raise ValueError("Bathrooms count cannot be negative")
         if self.area_sqm is not None and self.area_sqm <= 0:
             raise ValueError("Area must be positive")
+        if not self.currency_id or self.currency_id <= 0:
+            raise ValueError("Property must have a valid currency")
         self.title = self.title.strip()
 
     def publish(self):

@@ -13,6 +13,7 @@ from app.domain.repositories.i_master_repositories import (
     IListingTypeRepository,
     IRegionRepository,
     IDistrictRepository,
+    ICurrencyRepository,
 )
 
 __all__ = [
@@ -31,4 +32,5 @@ __all__ = [
     "IListingTypeRepository",
     "IRegionRepository",
     "IDistrictRepository",
+    "ICurrencyRepository",
 ]

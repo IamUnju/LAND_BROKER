@@ -4,9 +4,8 @@ import api from "../../../infrastructure/api";
 import PropertyHeader from "../../components/property/PropertyHeader";
 import ImageGallery from "../../components/property/ImageGallery";
 import AmenitiesGrid from "../../components/property/AmenitiesGrid";
-import ReviewList from "../../components/property/ReviewList";
 import BookingCard from "../../components/property/BookingCard";
-import { HiStar, HiOutlineHome } from "react-icons/hi";
+import { HiOutlineHome } from "react-icons/hi";
 import { MdVerified, MdOutlineCheckCircle, MdOutlineAcUnit, MdOutlineKey } from "react-icons/md";
 
 /* ── Tiny helper ── */
@@ -75,9 +74,6 @@ export default function PropertyDetailPage() {
     latitude: rawLatitude,
     images = [],
     amenities = [],
-    reviews = [],
-    avg_rating = 0,
-    review_count = 0,
     host_name,
     owner_email,
     owner_phone,
@@ -165,18 +161,6 @@ export default function PropertyDetailPage() {
               )}
               {address && (
                 <p className="mt-1 text-sm text-gray-400">{address}</p>
-              )}
-              {review_count > 0 && (
-                <div className="flex items-center gap-1.5 mt-2 text-sm">
-                  <span className="text-gray-800 font-semibold flex items-center gap-1">
-                    <HiStar className="w-4 h-4" />
-                    {avg_rating.toFixed(2)}
-                  </span>
-                  <span className="text-gray-300">·</span>
-                  <button className="text-gray-700 font-semibold underline underline-offset-2 hover:text-gray-900">
-                    {review_count} review{review_count !== 1 ? "s" : ""}
-                  </button>
-                </div>
               )}
             </div>
 
@@ -296,13 +280,6 @@ export default function PropertyDetailPage() {
                 </a>
               </div>
             )}
-
-            {/* Reviews */}
-            <ReviewList
-              reviews={reviews}
-              avgRating={avg_rating}
-              reviewCount={review_count}
-            />
           </div>
 
           {/* ─────────── RIGHT: Sticky Booking Card ─────────── */}

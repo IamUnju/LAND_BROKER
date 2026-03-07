@@ -101,6 +101,31 @@ class DistrictResponseDTO(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CurrencyCreateDTO(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    code: str = Field(min_length=1, max_length=10)
+    symbol: str = Field(min_length=1, max_length=10)
+    description: Optional[str] = None
+
+
+class CurrencyUpdateDTO(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    code: Optional[str] = Field(None, min_length=1, max_length=10)
+    symbol: Optional[str] = Field(None, min_length=1, max_length=10)
+    description: Optional[str] = None
+
+
+class CurrencyResponseDTO(BaseModel):
+    id: int
+    name: str
+    code: str
+    symbol: str
+    description: Optional[str]
+    created_at: Optional[datetime]
+
+    model_config = {"from_attributes": True}
+
+
 class StatsDTO(BaseModel):
     total_users: int
     total_properties: int

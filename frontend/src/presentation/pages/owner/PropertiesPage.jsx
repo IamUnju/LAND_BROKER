@@ -1,16 +1,32 @@
 import { useState, useEffect } from "react";
 import api from "../../../infrastructure/api";
-import Modal from "../../components/Modal";
 import Badge from "../../components/Badge";
 import toast from "react-hot-toast";
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineEye, HiOutlineEyeOff } from "react-icons/hi";
+
+const MIN_IMAGES = 3;
+const MAX_IMAGES = 5;
 
 function emptyForm() {
   return {
     title: "", description: "", address: "", price: "", bedrooms: "", bathrooms: "",
     is_furnished: false, property_type_id: "", listing_type_id: "", district_id: "",
-    broker_id: "",
+    currency_id: "", broker_id: "", is_published: true, image_paths: "", amenities_text: "",
   };
+}
+
+function parseImagePaths(value) {
+  return value
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseAmenities(value) {
+  return value
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 export default function PropertiesPage() {
@@ -18,10 +34,26 @@ export default function PropertiesPage() {
   const [districts, setDistricts] = useState([]);
   const [propTypes, setPropTypes] = useState([]);
   const [listTypes, setListTypes] = useState([]);
+  const [currencies, setCurrencies] = useState([]);
   const [brokers, setBrokers] = useState([]);
-  const [modal, setModal] = useState(null);
+  const [formMode, setFormMode] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState(emptyForm());
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [selectedPreviews, setSelectedPreviews] = useState([]);
+  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const existingImagePaths = parseImagePaths(form.image_paths);
+  const totalImageCount = existingImagePaths.length + selectedFiles.length;
+  const isImageCountValid = totalImageCount >= MIN_IMAGES && totalImageCount <= MAX_IMAGES;
+
+  useEffect(() => {
+    const urls = selectedFiles.map((file) => URL.createObjectURL(file));
+    setSelectedPreviews(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [selectedFiles]);
 
   const load = () => {
     setLoading(true);
@@ -33,26 +65,47 @@ export default function PropertiesPage() {
       api.get("/master/districts"),
       api.get("/master/property-types"),
       api.get("/master/listing-types"),
+      api.get("/master/currencies"),
       api.get("/users/brokers").catch(() => ({ data: { users: [] } })),
-    ]).then(([d, pt, lt, br]) => {
+    ]).then(([d, pt, lt, cu, br]) => {
       setDistricts(d.data);
       setPropTypes(pt.data);
       setListTypes(lt.data);
+      setCurrencies(cu.data);
       setBrokers(br.data?.users ?? []);
     });
     load();
   }, []);
 
-  const openCreate = () => { setForm(emptyForm()); setModal({ type: "create" }); };
+  const closeForm = () => {
+    setFormMode(null);
+    setEditingItem(null);
+    setForm(emptyForm());
+    setSelectedFiles([]);
+  };
+
+  const openCreate = () => {
+    setForm((f) => ({ ...emptyForm(), currency_id: String(currencies[0]?.id ?? "") }));
+    setEditingItem(null);
+    setFormMode("create");
+    setSelectedFiles([]);
+  };
+
   const openEdit = (p) => {
     setForm({
       title: p.title, description: p.description ?? "", address: p.address,
       price: p.price ?? "", bedrooms: p.bedrooms ?? "", bathrooms: p.bathrooms ?? "",
       is_furnished: p.is_furnished ?? false, property_type_id: p.property_type_id,
       listing_type_id: p.listing_type_id, district_id: p.district_id ?? "",
-      broker_id: p.broker_id ?? "",
+      currency_id: p.currency_id ? String(p.currency_id) : "",
+      broker_id: p.broker_id ?? "", is_published: p.is_published ?? true,
+      image_paths: (p.images ?? []).map((img) => img.url).filter(Boolean).join("\n"),
+      amenities_text: (p.amenities ?? []).map((a) => a.name).filter(Boolean).join("\n"),
     });
-    setModal({ type: "edit", item: p });
+    setEditingItem(p);
+    setFormMode("edit");
+    setSelectedFiles([]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleChange = (e) => {
@@ -60,7 +113,36 @@ export default function PropertiesPage() {
     setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
   };
 
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    const currentCount = parseImagePaths(form.image_paths).length;
+    const maxSelectable = Math.max(0, MAX_IMAGES - currentCount);
+
+    if (files.length > maxSelectable) {
+      toast.error(`You can add only ${maxSelectable} more image(s)`);
+      setSelectedFiles(files.slice(0, maxSelectable));
+      return;
+    }
+    setSelectedFiles(files);
+  };
+
+  const uploadSelectedImages = async () => {
+    if (!selectedFiles.length) return [];
+    const formData = new FormData();
+    selectedFiles.forEach((file) => formData.append("files", file));
+    const { data } = await api.post("/properties/upload-images", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data?.images ?? [];
+  };
+
   const save = async () => {
+    if (!isImageCountValid) {
+      toast.error(`Property must have minimum ${MIN_IMAGES} and maximum ${MAX_IMAGES} images`);
+      return;
+    }
+
+    setSaving(true);
     const payload = {
       ...form,
       price: form.price ? Number(form.price) : null,
@@ -69,15 +151,32 @@ export default function PropertiesPage() {
       property_type_id: Number(form.property_type_id),
       listing_type_id: Number(form.listing_type_id),
       district_id: form.district_id ? Number(form.district_id) : null,
+      currency_id: Number(form.currency_id),
       broker_id: form.broker_id ? Number(form.broker_id) : null,
+      images: [],
+      amenities: parseAmenities(form.amenities_text),
     };
+    const existingPaths = existingImagePaths;
+
     try {
-      if (modal.type === "create") await api.post("/properties/", payload);
-      else await api.put(`/properties/${modal.item.id}`, payload);
+      const uploadedPaths = await uploadSelectedImages();
+      payload.images = [...existingPaths, ...uploadedPaths];
+
+      if (payload.images.length < MIN_IMAGES || payload.images.length > MAX_IMAGES) {
+        toast.error(`Property must have minimum ${MIN_IMAGES} and maximum ${MAX_IMAGES} images`);
+        return;
+      }
+
+      if (formMode === "create") await api.post("/properties/", payload);
+      else await api.put(`/properties/${editingItem.id}`, payload);
       toast.success("Saved!");
-      setModal(null);
+      closeForm();
       load();
-    } catch (e) { toast.error(e.response?.data?.detail || "Error"); }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const del = async (id) => {
@@ -100,11 +199,112 @@ export default function PropertiesPage() {
         <h2 className="text-xl font-bold text-gray-800">My Properties</h2>
         <button onClick={openCreate} className="btn-primary"><HiOutlinePlus /> Add Property</button>
       </div>
+
+      {formMode && (
+        <div className="card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-800">
+              {formMode === "create" ? "Add Property" : "Edit Property"}
+            </h3>
+            <button onClick={closeForm} className="btn-secondary">Cancel</button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div><label className="label">Title</label><input name="title" className="input" value={form.title} onChange={handleChange} /></div>
+            <div><label className="label">Address</label><input name="address" className="input" value={form.address} onChange={handleChange} /></div>
+            <div className="md:col-span-2"><label className="label">Description</label><textarea name="description" rows={2} className="input" value={form.description} onChange={handleChange} /></div>
+            <div><label className="label">Price</label><input name="price" type="number" className="input" value={form.price} onChange={handleChange} /></div>
+            <div><label className="label">Bedrooms</label><input name="bedrooms" type="number" className="input" value={form.bedrooms} onChange={handleChange} /></div>
+            <div><label className="label">Bathrooms</label><input name="bathrooms" type="number" className="input" value={form.bathrooms} onChange={handleChange} /></div>
+            <div className="flex items-center gap-2 mt-6"><input name="is_furnished" type="checkbox" checked={form.is_furnished} onChange={handleChange} className="h-4 w-4" /><label className="text-sm">Furnished</label></div>
+            <div><label className="label">Property Type</label><select name="property_type_id" className="input" value={form.property_type_id} onChange={handleChange}><option value="">Select…</option>{propTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+            <div><label className="label">Listing Type</label><select name="listing_type_id" className="input" value={form.listing_type_id} onChange={handleChange}><option value="">Select…</option>{listTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+            <div><label className="label">Currency</label><select name="currency_id" className="input" value={form.currency_id} onChange={handleChange}><option value="">Select…</option>{currencies.map((c) => <option key={c.id} value={c.id}>{c.code} ({c.symbol})</option>)}</select></div>
+            <div><label className="label">District</label><select name="district_id" className="input" value={form.district_id} onChange={handleChange}><option value="">Select…</option>{districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
+            <div>
+              <label className="label">Assigned Broker <span className="text-gray-400 font-normal">(optional)</span></label>
+              <select name="broker_id" className="input" value={form.broker_id} onChange={handleChange}>
+                <option value="">No broker</option>
+                {brokers.map((b) => (
+                  <option key={b.id} value={b.id}>{b.first_name} {b.last_name} — {b.email}</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="label">Browse Images</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="input"
+                onChange={handleFileChange}
+              />
+              {selectedFiles.length > 0 && (
+                <p className="mt-1 text-xs text-gray-500">
+                  {selectedFiles.length} image(s) selected. They will be uploaded and saved in the project on Save.
+                </p>
+              )}
+              {selectedPreviews.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedPreviews.map((src, idx) => (
+                    <div key={src} className="relative">
+                      <img
+                        src={src}
+                        alt={`Selected ${idx + 1}`}
+                        className="h-16 w-16 rounded-md border border-gray-200 object-cover"
+                      />
+                      <span className="absolute -right-1 -top-1 rounded-full bg-[#0b6f26] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                        {idx + 1}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className={`mt-1 text-xs ${isImageCountValid ? "text-green-600" : "text-amber-600"}`}>
+                Live count: existing {existingImagePaths.length} + selected {selectedFiles.length} = {totalImageCount}/{MAX_IMAGES} (minimum {MIN_IMAGES}).
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <label className="label">Image Paths <span className="text-gray-400 font-normal">(auto-saved paths, one per line)</span></label>
+              <textarea
+                name="image_paths"
+                rows={4}
+                className="input"
+                value={form.image_paths}
+                onChange={handleChange}
+                placeholder="/images/property-1/front.jpg&#10;/images/property-1/living-room.jpg"
+              />
+              <p className="mt-1 text-xs text-gray-500">Use project-relative static paths so the frontend can render them (example: <code>/images/...</code>).</p>
+            </div>
+            <div className="md:col-span-2">
+              <label className="label">What this place offers <span className="text-gray-400 font-normal">(one item per line)</span></label>
+              <textarea
+                name="amenities_text"
+                rows={4}
+                className="input"
+                value={form.amenities_text}
+                onChange={handleChange}
+                placeholder={"WiFi\nAir conditioning\nParking"}
+              />
+            </div>
+            <div className="md:col-span-2 flex items-center gap-2">
+              <input name="is_published" type="checkbox" checked={form.is_published} onChange={handleChange} className="h-4 w-4" />
+              <label className="text-sm">Publish to marketplace</label>
+            </div>
+          </div>
+
+          <div className="flex gap-3 justify-end">
+            <button onClick={closeForm} className="btn-secondary">Cancel</button>
+            <button onClick={save} disabled={saving || !isImageCountValid} className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save"}</button>
+          </div>
+        </div>
+      )}
+
       {loading ? <p className="text-gray-400">Loading…</p> : (
         <div className="card p-0 overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
-              <tr>{["Title", "Address", "Type", "Price", "Broker", "Status", "Actions"].map((h) => <th key={h} className="table-header px-4 py-3">{h}</th>)}</tr>
+              <tr>{["Title", "Address", "Type", "Currency", "Price", "Images", "Broker", "Status", "Actions"].map((h) => <th key={h} className="table-header px-4 py-3">{h}</th>)}</tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {items.map((p) => (
@@ -112,7 +312,27 @@ export default function PropertiesPage() {
                   <td className="px-4 py-3 text-sm font-medium">{p.title}</td>
                   <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">{p.address}</td>
                   <td className="px-4 py-3 text-sm text-gray-500">{p.property_type_name}</td>
-                  <td className="px-4 py-3 text-sm">{p.price ? `$${Number(p.price).toLocaleString()}` : "—"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{p.currency_code || "—"}</td>
+                  <td className="px-4 py-3 text-sm">{p.price ? `${p.currency_symbol || ""}${Number(p.price).toLocaleString()}` : "—"}</td>
+                  <td className="px-4 py-3">
+                    {p.images?.length ? (
+                      <div className="flex items-center gap-1.5">
+                        {p.images.slice(0, 3).map((img) => (
+                          <img
+                            key={img.id ?? img.url}
+                            src={img.url}
+                            alt={p.title}
+                            className="h-10 w-10 rounded object-cover border border-gray-200"
+                          />
+                        ))}
+                        {p.images.length > 3 && (
+                          <span className="text-xs text-gray-500">+{p.images.length - 3}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">No images</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-sm text-gray-500">{p.broker_name || <span className="text-gray-300">None</span>}</td>
                   <td className="px-4 py-3"><Badge status={p.is_published ? "ACTIVE" : "INACTIVE"} /></td>
                   <td className="px-4 py-3 flex gap-2">
@@ -125,38 +345,6 @@ export default function PropertiesPage() {
             </tbody>
           </table>
         </div>
-      )}
-
-      {modal && (
-        <Modal title={modal.type === "create" ? "Add Property" : "Edit Property"} onClose={() => setModal(null)}>
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
-            <div><label className="label">Title</label><input name="title" className="input" value={form.title} onChange={handleChange} /></div>
-            <div><label className="label">Address</label><input name="address" className="input" value={form.address} onChange={handleChange} /></div>
-            <div><label className="label">Description</label><textarea name="description" rows={2} className="input" value={form.description} onChange={handleChange} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="label">Price</label><input name="price" type="number" className="input" value={form.price} onChange={handleChange} /></div>
-              <div><label className="label">Bedrooms</label><input name="bedrooms" type="number" className="input" value={form.bedrooms} onChange={handleChange} /></div>
-              <div><label className="label">Bathrooms</label><input name="bathrooms" type="number" className="input" value={form.bathrooms} onChange={handleChange} /></div>
-              <div className="flex items-center gap-2 mt-5"><input name="is_furnished" type="checkbox" checked={form.is_furnished} onChange={handleChange} className="h-4 w-4" /><label className="text-sm">Furnished</label></div>
-            </div>
-            <div><label className="label">Property Type</label><select name="property_type_id" className="input" value={form.property_type_id} onChange={handleChange}><option value="">Select…</option>{propTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-            <div><label className="label">Listing Type</label><select name="listing_type_id" className="input" value={form.listing_type_id} onChange={handleChange}><option value="">Select…</option>{listTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-            <div><label className="label">District</label><select name="district_id" className="input" value={form.district_id} onChange={handleChange}><option value="">Select…</option>{districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
-            <div>
-              <label className="label">Assigned Broker <span className="text-gray-400 font-normal">(optional)</span></label>
-              <select name="broker_id" className="input" value={form.broker_id} onChange={handleChange}>
-                <option value="">No broker</option>
-                {brokers.map((b) => (
-                  <option key={b.id} value={b.id}>{b.first_name} {b.last_name} — {b.email}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-3 justify-end pt-2">
-              <button onClick={() => setModal(null)} className="btn-secondary">Cancel</button>
-              <button onClick={save} className="btn-primary">Save</button>
-            </div>
-          </div>
-        </Modal>
       )}
     </div>
   );

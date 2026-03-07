@@ -11,7 +11,7 @@ export default function TenantPaymentsPage() {
       <h2 className="text-xl font-bold text-gray-800">My Payments</h2>
       {loading ? <p className="text-gray-400">Loading…</p> : (
         <div className="card p-0 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-[720px] w-full divide-y divide-gray-200">
             <thead><tr>{["Due Date", "Amount", "Status", "Paid On", "Method"].map((h) => <th key={h} className="table-header px-4 py-3">{h}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-100">
               {payments.map((p) => (

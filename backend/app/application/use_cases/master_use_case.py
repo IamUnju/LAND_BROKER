@@ -1,17 +1,19 @@
 from fastapi import HTTPException, status
 from app.domain.repositories.i_master_repositories import (
     IRoleRepository, IPropertyTypeRepository, IListingTypeRepository,
-    IRegionRepository, IDistrictRepository,
+    IRegionRepository, IDistrictRepository, ICurrencyRepository,
 )
 from app.domain.entities.role import Role
 from app.domain.entities.property_type import PropertyType, ListingType
 from app.domain.entities.location import Region, District
+from app.domain.entities.currency import Currency
 from app.application.dto.master_dto import (
     RoleCreateDTO, RoleUpdateDTO,
     PropertyTypeCreateDTO, PropertyTypeUpdateDTO,
     ListingTypeCreateDTO, ListingTypeUpdateDTO,
     RegionCreateDTO, RegionUpdateDTO,
     DistrictCreateDTO, DistrictUpdateDTO,
+    CurrencyCreateDTO, CurrencyUpdateDTO,
 )
 
 
@@ -23,12 +25,14 @@ class MasterUseCase:
         listing_type_repo: IListingTypeRepository,
         region_repo: IRegionRepository,
         district_repo: IDistrictRepository,
+        currency_repo: ICurrencyRepository,
     ):
         self._role_repo = role_repo
         self._property_type_repo = property_type_repo
         self._listing_type_repo = listing_type_repo
         self._region_repo = region_repo
         self._district_repo = district_repo
+        self._currency_repo = currency_repo
 
     # ── Roles ──────────────────────────────────────────────────────────────
     async def create_role(self, dto: RoleCreateDTO) -> Role:
@@ -168,3 +172,38 @@ class MasterUseCase:
     async def delete_district(self, district_id: int) -> bool:
         await self.get_district(district_id)
         return await self._district_repo.delete(district_id)
+
+    # ── Currencies ──────────────────────────────────────────────────────────
+    async def create_currency(self, dto: CurrencyCreateDTO) -> Currency:
+        currency = Currency(
+            name=dto.name,
+            code=dto.code,
+            symbol=dto.symbol,
+            description=dto.description,
+        )
+        return await self._currency_repo.create(currency)
+
+    async def get_currency(self, currency_id: int) -> Currency:
+        currency = await self._currency_repo.get_by_id(currency_id)
+        if not currency:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Currency not found")
+        return currency
+
+    async def list_currencies(self):
+        return await self._currency_repo.get_all()
+
+    async def update_currency(self, currency_id: int, dto: CurrencyUpdateDTO) -> Currency:
+        currency = await self.get_currency(currency_id)
+        if dto.name:
+            currency.name = dto.name
+        if dto.code:
+            currency.code = dto.code
+        if dto.symbol:
+            currency.symbol = dto.symbol
+        if dto.description is not None:
+            currency.description = dto.description
+        return await self._currency_repo.update(currency)
+
+    async def delete_currency(self, currency_id: int) -> bool:
+        await self.get_currency(currency_id)
+        return await self._currency_repo.delete(currency_id)

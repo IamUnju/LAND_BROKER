@@ -55,13 +55,20 @@ export default function RegisterPage() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-[#eef2f6] px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-primary-900">🏠 BrokerSaaS</h1>
-          <p className="mt-2 text-sm text-gray-500">Create a free tenant account</p>
+          <div className="mb-4 flex justify-center">
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#1f2742] shadow-lg">
+              <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-[#1f2742]">BrokerSaaS</h1>
+          <p className="mt-2 text-sm text-[#64748b]">Create a free tenant account</p>
         </div>
-        <div className="card">
+        <div className="rounded-2xl bg-white shadow-lg border border-[#d7dde7] p-8">
           {/* Google button — only shown when client ID is configured */}
           {hasGoogle && (
             <>
@@ -69,7 +76,7 @@ export default function RegisterPage() {
                 type="button"
                 onClick={() => handleGoogle()}
                 disabled={gLoading}
-                className="w-full flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-3 rounded-xl border border-[#d7dde7] bg-white px-4 py-3 text-sm font-semibold text-[#1f2742] shadow-sm hover:bg-[#f6f8fb] active:bg-[#eef2f6] transition disabled:opacity-50"
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -80,9 +87,9 @@ export default function RegisterPage() {
                 {gLoading ? "Connecting…" : "Continue with Google"}
               </button>
               <div className="my-4 flex items-center gap-3">
-                <div className="flex-1 border-t border-gray-200" />
-                <span className="text-xs text-gray-400">or register with email</span>
-                <div className="flex-1 border-t border-gray-200" />
+                <div className="flex-1 border-t border-[#d7dde7]" />
+                <span className="text-xs text-[#64748b]">or register with email</span>
+                <div className="flex-1 border-t border-[#d7dde7]" />
               </div>
             </>
           )}
@@ -90,42 +97,42 @@ export default function RegisterPage() {
           <form onSubmit={submit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">First Name</label>
-                <input name="first_name" required className="input" value={form.first_name} onChange={handle} />
+                <label className="block text-sm font-semibold text-[#1f2742] mb-2">First Name</label>
+                <input name="first_name" required className="block w-full rounded-xl border border-[#d7dde7] bg-white px-4 py-2.5 text-sm shadow-sm placeholder-[#94a3b8] focus:border-[#0b6f26] focus:outline-none focus:ring-2 focus:ring-[#0b6f26]/20" value={form.first_name} onChange={handle} />
               </div>
               <div>
-                <label className="label">Last Name</label>
-                <input name="last_name" required className="input" value={form.last_name} onChange={handle} />
+                <label className="block text-sm font-semibold text-[#1f2742] mb-2">Last Name</label>
+                <input name="last_name" required className="block w-full rounded-xl border border-[#d7dde7] bg-white px-4 py-2.5 text-sm shadow-sm placeholder-[#94a3b8] focus:border-[#0b6f26] focus:outline-none focus:ring-2 focus:ring-[#0b6f26]/20" value={form.last_name} onChange={handle} />
               </div>
             </div>
             <div>
-              <label className="label">Email</label>
-              <input name="email" type="email" required className="input" value={form.email} onChange={handle} />
+              <label className="block text-sm font-semibold text-[#1f2742] mb-2">Email</label>
+              <input name="email" type="email" required className="block w-full rounded-xl border border-[#d7dde7] bg-white px-4 py-2.5 text-sm shadow-sm placeholder-[#94a3b8] focus:border-[#0b6f26] focus:outline-none focus:ring-2 focus:ring-[#0b6f26]/20" value={form.email} onChange={handle} />
             </div>
             <div>
-              <label className="label">Phone</label>
-              <input name="phone" className="input" placeholder="+1234567890" value={form.phone} onChange={handle} />
+              <label className="block text-sm font-semibold text-[#1f2742] mb-2">Phone</label>
+              <input name="phone" className="block w-full rounded-xl border border-[#d7dde7] bg-white px-4 py-2.5 text-sm shadow-sm placeholder-[#94a3b8] focus:border-[#0b6f26] focus:outline-none focus:ring-2 focus:ring-[#0b6f26]/20" placeholder="+1234567890" value={form.phone} onChange={handle} />
             </div>
             <div>
-              <label className="label">Password</label>
-              <input name="password" type="password" required className="input" placeholder="Min 8 chars, 1 uppercase, 1 digit" value={form.password} onChange={handle} />
+              <label className="block text-sm font-semibold text-[#1f2742] mb-2">Password</label>
+              <input name="password" type="password" required className="block w-full rounded-xl border border-[#d7dde7] bg-white px-4 py-2.5 text-sm shadow-sm placeholder-[#94a3b8] focus:border-[#0b6f26] focus:outline-none focus:ring-2 focus:ring-[#0b6f26]/20" placeholder="Min 8 chars, 1 uppercase, 1 digit" value={form.password} onChange={handle} />
             </div>
-            <button type="submit" disabled={loading} className="btn-primary w-full">
+            <button type="submit" disabled={loading} className="w-full rounded-xl bg-[#0b6f26] px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-[#095a1f] focus:outline-none focus:ring-2 focus:ring-[#0b6f26] focus:ring-offset-2 disabled:opacity-50 transition-colors">
               {loading ? "Creating…" : "Create Account"}
             </button>
           </form>
-          <p className="mt-4 text-center text-sm text-gray-500">
+          <p className="mt-6 text-center text-sm text-[#64748b]">
             Already have an account?{" "}
             <Link
               to={nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login"}
-              className="text-primary-600 hover:underline font-medium"
+              className="text-[#0b6f26] hover:underline font-semibold"
             >
               Sign in
             </Link>
           </p>
         </div>
-        <p className="mt-4 text-center text-sm">
-          <Link to="/marketplace" className="text-primary-600 hover:underline">← Browse Marketplace</Link>
+        <p className="mt-6 text-center text-sm">
+          <Link to="/marketplace" className="text-[#0b6f26] hover:underline font-medium">← Browse Marketplace</Link>
         </p>
       </div>
     </div>

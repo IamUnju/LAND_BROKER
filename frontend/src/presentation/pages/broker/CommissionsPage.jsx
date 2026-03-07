@@ -28,7 +28,7 @@ export default function CommissionsPage() {
       </div>
       {loading ? <p className="text-gray-400">Loading…</p> : (
         <div className="card p-0 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-[760px] w-full divide-y divide-gray-200">
             <thead><tr>{["Property", "Rate", "Amount", "Status", "Paid Date"].map((h) => <th key={h} className="table-header px-4 py-3">{h}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-100">
               {commissions.map((c) => (

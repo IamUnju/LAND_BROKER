@@ -12,13 +12,43 @@ class PropertyUseCase:
     def __init__(self, property_repo: IPropertyRepository):
         self._repo = property_repo
 
+    @staticmethod
+    def _normalize_amenities(values: Optional[list[str]]) -> list[dict]:
+        if not values:
+            return []
+        seen = set()
+        normalized = []
+        for value in values:
+            name = str(value).strip()
+            if not name:
+                continue
+            key = name.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append({"name": name})
+        return normalized
+
+    @staticmethod
+    def _validate_image_count(images: list[str]):
+        count = len(images)
+        if count < 3 or count > 5:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Property must have minimum 3 and maximum 5 images",
+            )
+
     async def create_property(self, dto: PropertyCreateDTO, owner_id: int) -> Property:
+        cleaned_images = [path.strip() for path in dto.images if str(path).strip()]
+        self._validate_image_count(cleaned_images)
+        images = [{"url": path} for path in cleaned_images]
         prop = Property(
             title=dto.title,
             owner_id=owner_id,
             property_type_id=dto.property_type_id,
             listing_type_id=dto.listing_type_id,
             district_id=dto.district_id,
+            currency_id=dto.currency_id,
             price=dto.price,
             bedrooms=dto.bedrooms,
             bathrooms=dto.bathrooms,
@@ -26,9 +56,12 @@ class PropertyUseCase:
             address=dto.address,
             description=dto.description,
             is_furnished=dto.is_furnished,
+            is_published=dto.is_published,
             latitude=dto.latitude,
             longitude=dto.longitude,
             broker_id=dto.broker_id,
+            images=images,
+            amenities=self._normalize_amenities(dto.amenities),
         )
         return await self._repo.create(prop)
 
@@ -128,6 +161,15 @@ class PropertyUseCase:
             dto_dict.pop("owner_id", None)
         else:
             dto_dict = dto.model_dump(exclude_none=True)
+
+        if "images" in dto_dict:
+            cleaned_images = [path.strip() for path in dto_dict["images"] if str(path).strip()]
+            self._validate_image_count(cleaned_images)
+            dto_dict["images"] = [{"url": path} for path in cleaned_images]
+
+        if "amenities" in dto_dict:
+            dto_dict["amenities"] = self._normalize_amenities(dto_dict["amenities"])
+
         for field, value in dto_dict.items():
             setattr(prop, field, value)
         return await self._repo.update(prop)

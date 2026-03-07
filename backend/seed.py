@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.infrastructure.db.database import AsyncSessionLocal
 from app.infrastructure.db.models import (
     RoleModel, PropertyTypeModel, ListingTypeModel, RegionModel, DistrictModel, UserModel,
+    CurrencyModel,
     PropertyModel, AmenityModel, PropertyAmenityModel, PropertyImageModel, ReviewModel,
 )
 from app.infrastructure.security.password import PasswordHasher
@@ -25,6 +26,7 @@ async def seed():
         await seed_property_types(session)
         await seed_listing_types(session)
         await seed_regions_districts(session)
+        await seed_currencies(session)
         await seed_users(session)
         await seed_properties(session)
         await seed_amenities(session)
@@ -158,6 +160,21 @@ async def seed_users(session: AsyncSession):
     await session.flush()
 
 
+async def seed_currencies(session: AsyncSession):
+    from sqlalchemy import select
+    currencies = [
+        {"name": "Ghana Cedi", "code": "GHS", "symbol": "GH₵", "description": "Ghanaian Cedi"},
+        {"name": "US Dollar", "code": "USD", "symbol": "$", "description": "United States Dollar"},
+        {"name": "Euro", "code": "EUR", "symbol": "€", "description": "Euro"},
+    ]
+    for c in currencies:
+        exists = await session.execute(select(CurrencyModel).where(CurrencyModel.code == c["code"]))
+        if not exists.scalar_one_or_none():
+            session.add(CurrencyModel(**c))
+            print(f"  ✓ Currency: {c['code']}")
+    await session.flush()
+
+
 async def seed_properties(session: AsyncSession):
     from sqlalchemy import select
 
@@ -165,6 +182,7 @@ async def seed_properties(session: AsyncSession):
     pt_rows = (await session.execute(select(PropertyTypeModel))).scalars().all()
     lt_rows = (await session.execute(select(ListingTypeModel))).scalars().all()
     dt_rows = (await session.execute(select(DistrictModel))).scalars().all()
+    cu_rows = (await session.execute(select(CurrencyModel))).scalars().all()
     owner = (await session.execute(select(UserModel).where(UserModel.email == "owner@broker.com"))).scalar_one_or_none()
     broker = (await session.execute(select(UserModel).where(UserModel.email == "broker@broker.com"))).scalar_one_or_none()
     
@@ -175,6 +193,8 @@ async def seed_properties(session: AsyncSession):
     pt = {r.name: r.id for r in pt_rows}
     lt = {r.name: r.id for r in lt_rows}
     dt = {r.name: r.id for r in dt_rows}
+    cu = {r.code: r.id for r in cu_rows}
+    default_currency_id = cu.get("GHS")
 
     properties_data = [
         # ─── Apartments ────────────────────────────────────────────────────────
@@ -183,6 +203,7 @@ async def seed_properties(session: AsyncSession):
             "property_type_id": pt.get("Apartment"),
             "listing_type_id": lt.get("FOR_RENT"),
             "district_id": dt.get("East Legon"),
+            "currency_id": cu.get("GHS"),
             "price": "3500.00",
             "bedrooms": 2, "bathrooms": 2, "area_sqm": "95.00",
             "address": "15 Jungle Avenue, East Legon, Accra",
@@ -201,6 +222,7 @@ async def seed_properties(session: AsyncSession):
             "property_type_id": pt.get("Apartment"),
             "listing_type_id": lt.get("FOR_RENT"),
             "district_id": dt.get("Osu"),
+            "currency_id": cu.get("GHS"),
             "price": "1800.00",
             "bedrooms": 1, "bathrooms": 1, "area_sqm": "48.00",
             "address": "Oxford Street Extension, Osu, Accra",
@@ -219,6 +241,7 @@ async def seed_properties(session: AsyncSession):
             "property_type_id": pt.get("Apartment"),
             "listing_type_id": lt.get("FOR_RENT"),
             "district_id": dt.get("Cantonments"),
+            "currency_id": cu.get("GHS"),
             "price": "5200.00",
             "bedrooms": 3, "bathrooms": 3, "area_sqm": "145.00",
             "address": "Ridge Road, Cantonments, Accra",
@@ -236,6 +259,7 @@ async def seed_properties(session: AsyncSession):
             "property_type_id": pt.get("Apartment"),
             "listing_type_id": lt.get("FOR_RENT"),
             "district_id": dt.get("Tema"),
+            "currency_id": cu.get("GHS"),
             "price": "1200.00",
             "bedrooms": 1, "bathrooms": 1, "area_sqm": "55.00",
             "address": "Community 4, Tema, Greater Accra",
@@ -254,6 +278,7 @@ async def seed_properties(session: AsyncSession):
             "property_type_id": pt.get("House"),
             "listing_type_id": lt.get("FOR_SALE"),
             "district_id": dt.get("Spintex"),
+            "currency_id": cu.get("USD"),
             "price": "320000.00",
             "bedrooms": 4, "bathrooms": 3, "area_sqm": "220.00",
             "address": "Spintex Road, Plot 22, Accra",
@@ -272,6 +297,7 @@ async def seed_properties(session: AsyncSession):
             "property_type_id": pt.get("House"),
             "listing_type_id": lt.get("FOR_RENT"),
             "district_id": dt.get("Bantama"),
+            "currency_id": cu.get("GHS"),
             "price": "2800.00",
             "bedrooms": 3, "bathrooms": 2, "area_sqm": "160.00",
             "address": "Bantama High Street, Kumasi",
@@ -290,6 +316,7 @@ async def seed_properties(session: AsyncSession):
             "property_type_id": pt.get("House"),
             "listing_type_id": lt.get("FOR_SALE"),
             "district_id": dt.get("Nhyiaeso"),
+            "currency_id": cu.get("USD"),
             "price": "480000.00",
             "bedrooms": 5, "bathrooms": 4, "area_sqm": "310.00",
             "address": "Royal Estates, Nhyiaeso, Kumasi",
@@ -310,6 +337,7 @@ async def seed_properties(session: AsyncSession):
             "property_type_id": pt.get("Villa"),
             "listing_type_id": lt.get("FOR_SALE"),
             "district_id": dt.get("Takoradi"),
+            "currency_id": cu.get("USD"),
             "price": "950000.00",
             "bedrooms": 5, "bathrooms": 5, "area_sqm": "450.00",
             "address": "Beach Road, Takoradi",
@@ -552,6 +580,8 @@ async def seed_properties(session: AsyncSession):
         if not prop.get("property_type_id") or not prop.get("listing_type_id") or not prop.get("district_id"):
             print(f"  ⚠ Skipping '{prop['title']}' — missing FK lookup")
             continue
+        if not prop.get("currency_id"):
+            prop["currency_id"] = default_currency_id
         exists = await session.execute(
             select(PropertyModel).where(PropertyModel.title == prop["title"])
         )
@@ -563,6 +593,7 @@ async def seed_properties(session: AsyncSession):
                 property_type_id=prop["property_type_id"],
                 listing_type_id=prop["listing_type_id"],
                 district_id=prop["district_id"],
+                currency_id=prop["currency_id"],
                 price=prop["price"],
                 bedrooms=prop["bedrooms"],
                 bathrooms=prop["bathrooms"],

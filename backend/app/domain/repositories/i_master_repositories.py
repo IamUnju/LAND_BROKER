@@ -3,6 +3,7 @@ from typing import List, Optional
 from app.domain.entities.role import Role
 from app.domain.entities.property_type import PropertyType, ListingType
 from app.domain.entities.location import Region, District
+from app.domain.entities.currency import Currency
 
 
 class IRoleRepository(ABC):
@@ -125,4 +126,27 @@ class IDistrictRepository(ABC):
 
     @abstractmethod
     async def delete(self, district_id: int) -> bool:
+        pass
+
+
+class ICurrencyRepository(ABC):
+
+    @abstractmethod
+    async def create(self, currency: Currency) -> Currency:
+        pass
+
+    @abstractmethod
+    async def get_by_id(self, currency_id: int) -> Optional[Currency]:
+        pass
+
+    @abstractmethod
+    async def get_all(self) -> List[Currency]:
+        pass
+
+    @abstractmethod
+    async def update(self, currency: Currency) -> Currency:
+        pass
+
+    @abstractmethod
+    async def delete(self, currency_id: int) -> bool:
         pass

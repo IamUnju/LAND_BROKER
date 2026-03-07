@@ -14,6 +14,10 @@ class PropertyImageDTO(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PropertyImageUploadResponseDTO(BaseModel):
+    images: List[str]
+
+
 class AmenityDTO(BaseModel):
     id: int
     name: str
@@ -40,6 +44,7 @@ class PropertyCreateDTO(BaseModel):
     property_type_id: int = Field(gt=0)
     listing_type_id: int = Field(gt=0)
     district_id: int = Field(gt=0)
+    currency_id: int = Field(gt=0)
     price: Decimal = Field(gt=0)
     bedrooms: int = Field(ge=0, default=0)
     bathrooms: int = Field(ge=0, default=0)
@@ -50,6 +55,9 @@ class PropertyCreateDTO(BaseModel):
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
     broker_id: Optional[int] = None
+    is_published: bool = True
+    images: List[str] = Field(min_length=3, max_length=5)
+    amenities: List[str] = []
 
 
 class PropertyUpdateDTO(BaseModel):
@@ -57,6 +65,7 @@ class PropertyUpdateDTO(BaseModel):
     property_type_id: Optional[int] = Field(None, gt=0)
     listing_type_id: Optional[int] = Field(None, gt=0)
     district_id: Optional[int] = Field(None, gt=0)
+    currency_id: Optional[int] = Field(None, gt=0)
     price: Optional[Decimal] = Field(None, gt=0)
     bedrooms: Optional[int] = Field(None, ge=0)
     bathrooms: Optional[int] = Field(None, ge=0)
@@ -68,6 +77,8 @@ class PropertyUpdateDTO(BaseModel):
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
     broker_id: Optional[int] = None
+    images: Optional[List[str]] = Field(default=None, min_length=3, max_length=5)
+    amenities: Optional[List[str]] = None
 
 
 class PropertyResponseDTO(BaseModel):
@@ -77,6 +88,7 @@ class PropertyResponseDTO(BaseModel):
     property_type_id: int
     listing_type_id: int
     district_id: int
+    currency_id: int
     price: Decimal
     bedrooms: int
     bathrooms: int
@@ -95,9 +107,14 @@ class PropertyResponseDTO(BaseModel):
     listing_type_name: Optional[str] = None
     district_name: Optional[str] = None
     region_name: Optional[str] = None
+    currency_name: Optional[str] = None
+    currency_code: Optional[str] = None
+    currency_symbol: Optional[str] = None
     # Contact info (available even on listing cards)
     host_name: Optional[str] = None
     broker_name: Optional[str] = None
+    images: List[PropertyImageDTO] = []
+    amenities: List[AmenityDTO] = []
 
     model_config = {"from_attributes": True}
 

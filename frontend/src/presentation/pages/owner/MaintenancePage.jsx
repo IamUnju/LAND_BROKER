@@ -21,7 +21,7 @@ export default function MaintenancePage() {
       <h2 className="text-xl font-bold text-gray-800">Maintenance Requests</h2>
       {loading ? <p className="text-gray-400">Loading…</p> : (
         <div className="card p-0 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-[820px] w-full divide-y divide-gray-200">
             <thead><tr>{["Title", "Priority", "Status", "Unit", "Created", "Actions"].map((h) => <th key={h} className="table-header px-4 py-3">{h}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-100">
               {requests.map((r) => (

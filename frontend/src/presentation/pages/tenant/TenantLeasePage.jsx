@@ -17,7 +17,7 @@ export default function TenantLeasePage() {
       <h2 className="text-xl font-bold text-gray-800">My Lease</h2>
       <div className="card grid sm:grid-cols-2 gap-4 text-sm">
         {[["Unit ID", lease.unit_id], ["Monthly Rent", `$${Number(lease.monthly_rent).toLocaleString()}`], ["Security Deposit", lease.security_deposit ? `$${Number(lease.security_deposit).toLocaleString()}` : "—"], ["Start Date", lease.start_date], ["End Date", lease.end_date], ["Duration (months)", lease.duration_months]].map(([k, v]) => (
-          <div key={k} className="rounded-lg bg-gray-50 p-3"><p className="text-gray-400">{k}</p><p className="font-medium">{v}</p></div>
+          <div key={k} className="rounded-lg bg-gray-50 p-3"><p className="text-gray-400">{k}</p><p className="font-medium break-words">{v}</p></div>
         ))}
         <div className="rounded-lg bg-gray-50 p-3"><p className="text-gray-400">Status</p><Badge status={lease.status} /></div>
       </div>

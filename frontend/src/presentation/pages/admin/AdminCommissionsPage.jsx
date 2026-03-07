@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../../infrastructure/api";
 import Badge from "../../components/Badge";
-import Modal from "../../components/Modal";
 import toast from "react-hot-toast";
 import { HiOutlinePlus, HiOutlineCheck, HiOutlineTrash } from "react-icons/hi";
 
@@ -10,7 +9,7 @@ export default function AdminCommissionsPage() {
   const [brokers, setBrokers] = useState([]);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [form, setForm] = useState({ property_id: "", broker_id: "", commission_rate: "", commission_amount: "" });
 
   const load = () => {
@@ -37,7 +36,7 @@ export default function AdminCommissionsPage() {
     try {
       await api.post("/commissions", payload);
       toast.success("Commission created");
-      setShowCreate(false);
+      setShowCreateForm(false);
       setForm({ property_id: "", broker_id: "", commission_rate: "", commission_amount: "" });
       load();
     } catch (e) { toast.error(e.response?.data?.detail || "Error"); }
@@ -60,12 +59,43 @@ export default function AdminCommissionsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold text-gray-800">All Commissions</h2>
-        <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2 text-sm">
+        <button onClick={() => setShowCreateForm(true)} className="btn-primary inline-flex items-center gap-2 text-sm w-full sm:w-auto justify-center">
           <HiOutlinePlus className="h-4 w-4" /> Add Commission
         </button>
       </div>
+
+      {showCreateForm && (
+        <div className="card space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-lg font-semibold text-gray-800">Add Commission</h3>
+            <button onClick={() => setShowCreateForm(false)} className="btn-secondary w-full sm:w-auto">Cancel</button>
+          </div>
+          <div>
+            <label className="label">Property</label>
+            <select name="property_id" className="input" value={form.property_id} onChange={handle}>
+              <option value="">Select property…</option>
+              {properties.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Broker</label>
+            <select name="broker_id" className="input" value={form.broker_id} onChange={handle}>
+              <option value="">Select broker…</option>
+              {brokers.map((b) => <option key={b.id} value={b.id}>{b.first_name} {b.last_name} — {b.email}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><label className="label">Commission Rate (%)</label><input name="commission_rate" type="number" step="0.01" className="input" placeholder="e.g. 5" value={form.commission_rate} onChange={handle} /></div>
+            <div><label className="label">Commission Amount <span className="text-gray-400 font-normal">(optional)</span></label><input name="commission_amount" type="number" className="input" placeholder="e.g. 2000" value={form.commission_amount} onChange={handle} /></div>
+          </div>
+          <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-1">
+            <button onClick={() => setShowCreateForm(false)} className="btn-secondary">Cancel</button>
+            <button onClick={create} className="btn-primary">Create</button>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="card"><p className="text-sm text-gray-500">Total Amount</p><p className="text-2xl font-bold text-primary-700">${total.toLocaleString()}</p></div>
@@ -75,7 +105,7 @@ export default function AdminCommissionsPage() {
 
       {loading ? <p className="text-gray-400">Loading…</p> : (
         <div className="card p-0 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-[900px] w-full divide-y divide-gray-200">
             <thead>
               <tr>{["Property", "Broker", "Rate", "Amount", "Status", "Paid Date", "Actions"].map((h) => (
                 <th key={h} className="table-header px-4 py-3">{h}</th>
@@ -92,7 +122,8 @@ export default function AdminCommissionsPage() {
                   <td className="px-4 py-3 text-sm font-medium">${Number(c.commission_amount ?? 0).toLocaleString()}</td>
                   <td className="px-4 py-3"><Badge status={c.status} /></td>
                   <td className="px-4 py-3 text-sm text-gray-500">{c.paid_date ?? "—"}</td>
-                  <td className="px-4 py-3 flex gap-2">
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2 min-w-[84px]">
                     {c.status !== "PAID" && (
                       <button onClick={() => pay(c.id)} title="Mark paid" className="btn-secondary py-1 px-2 text-xs text-green-600 border-green-300 hover:bg-green-50">
                         <HiOutlineCheck />
@@ -101,6 +132,7 @@ export default function AdminCommissionsPage() {
                     <button onClick={() => del(c.id)} title="Delete" className="btn-danger py-1 px-2 text-xs">
                       <HiOutlineTrash />
                     </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -109,32 +141,6 @@ export default function AdminCommissionsPage() {
         </div>
       )}
 
-      {showCreate && (
-        <Modal title="Add Commission" onClose={() => setShowCreate(false)}>
-          <div className="space-y-3">
-            <div>
-              <label className="label">Property</label>
-              <select name="property_id" className="input" value={form.property_id} onChange={handle}>
-                <option value="">Select property…</option>
-                {properties.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">Broker</label>
-              <select name="broker_id" className="input" value={form.broker_id} onChange={handle}>
-                <option value="">Select broker…</option>
-                {brokers.map((b) => <option key={b.id} value={b.id}>{b.first_name} {b.last_name} — {b.email}</option>)}
-              </select>
-            </div>
-            <div><label className="label">Commission Rate (%)</label><input name="commission_rate" type="number" step="0.01" className="input" placeholder="e.g. 5" value={form.commission_rate} onChange={handle} /></div>
-            <div><label className="label">Commission Amount <span className="text-gray-400 font-normal">(optional — calculated if blank)</span></label><input name="commission_amount" type="number" className="input" placeholder="e.g. 2000" value={form.commission_amount} onChange={handle} /></div>
-            <div className="flex gap-3 justify-end pt-2">
-              <button onClick={() => setShowCreate(false)} className="btn-secondary">Cancel</button>
-              <button onClick={create} className="btn-primary">Create</button>
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

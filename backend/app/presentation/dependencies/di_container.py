@@ -17,7 +17,7 @@ from app.infrastructure.repositories.inquiry_repository import InquiryRepository
 from app.infrastructure.repositories.commission_repository import CommissionRepository
 from app.infrastructure.repositories.master_repositories import (
     RoleRepository, PropertyTypeRepository, ListingTypeRepository,
-    RegionRepository, DistrictRepository,
+    RegionRepository, DistrictRepository, CurrencyRepository,
 )
 from app.application.use_cases.auth_use_case import AuthUseCase
 from app.application.use_cases.user_use_case import UserUseCase
@@ -82,6 +82,9 @@ def get_region_repo(db: AsyncSession = Depends(get_db)):
 
 def get_district_repo(db: AsyncSession = Depends(get_db)):
     return DistrictRepository(db)
+
+def get_currency_repo(db: AsyncSession = Depends(get_db)):
+    return CurrencyRepository(db)
 
 
 # ── Use Case Factories ────────────────────────────────────────────────────────
@@ -153,8 +156,9 @@ def get_master_use_case(
     listing_type_repo=Depends(get_listing_type_repo),
     region_repo=Depends(get_region_repo),
     district_repo=Depends(get_district_repo),
+    currency_repo=Depends(get_currency_repo),
 ) -> MasterUseCase:
-    return MasterUseCase(role_repo, property_type_repo, listing_type_repo, region_repo, district_repo)
+    return MasterUseCase(role_repo, property_type_repo, listing_type_repo, region_repo, district_repo, currency_repo)
 
 
 # ── Auth Guards ────────────────────────────────────────────────────────────────

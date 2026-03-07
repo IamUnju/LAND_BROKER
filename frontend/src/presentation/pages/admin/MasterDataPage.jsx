@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import api from "../../../infrastructure/api";
-import Modal from "../../components/Modal";
 import toast from "react-hot-toast";
 import { HiOutlinePencil, HiOutlineTrash, HiOutlinePlus } from "react-icons/hi";
 
@@ -8,6 +7,7 @@ const ENDPOINTS = {
   Roles: { list: "/master/roles", base: "/admin/roles" },
   "Property Types": { list: "/master/property-types", base: "/admin/property-types" },
   "Listing Types": { list: "/master/listing-types", base: "/admin/listing-types" },
+  Currencies: { list: "/master/currencies", base: "/admin/currencies" },
   Regions: { list: "/master/regions", base: "/admin/regions" },
   Districts: { list: "/master/districts", base: "/admin/districts" },
 };
@@ -16,8 +16,9 @@ export default function MasterDataPage() {
   const [tab, setTab] = useState("Roles");
   const [items, setItems] = useState([]);
   const [regions, setRegions] = useState([]);
-  const [modal, setModal] = useState(null); // null | {type:'create'|'edit', item?}
-  const [form, setForm] = useState({ name: "", description: "", region_id: "" });
+  const [formMode, setFormMode] = useState(null); // null | 'create' | 'edit'
+  const [editingItem, setEditingItem] = useState(null);
+  const [form, setForm] = useState({ name: "", code: "", symbol: "", description: "", region_id: "" });
 
   const load = async () => {
     const { data } = await api.get(ENDPOINTS[tab].list);
@@ -29,18 +30,40 @@ export default function MasterDataPage() {
     api.get("/master/regions").then(({ data }) => setRegions(data)).catch(() => {});
   }, [tab]);
 
-  const openCreate = () => { setForm({ name: "", description: "", region_id: "" }); setModal({ type: "create" }); };
-  const openEdit = (item) => { setForm({ name: item.name, description: item.description ?? "", region_id: item.region_id ?? "" }); setModal({ type: "edit", item }); };
+  const closeForm = () => {
+    setFormMode(null);
+    setEditingItem(null);
+    setForm({ name: "", code: "", symbol: "", description: "", region_id: "" });
+  };
+
+  const openCreate = () => {
+    setForm({ name: "", code: "", symbol: "", description: "", region_id: "" });
+    setEditingItem(null);
+    setFormMode("create");
+  };
+
+  const openEdit = (item) => {
+    setForm({
+      name: item.name,
+      code: item.code ?? "",
+      symbol: item.symbol ?? "",
+      description: item.description ?? "",
+      region_id: item.region_id ?? "",
+    });
+    setEditingItem(item);
+    setFormMode("edit");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const save = async () => {
     const ep = ENDPOINTS[tab].base;
     const payload = { ...form };
     if (tab === "Districts") payload.region_id = Number(form.region_id);
     try {
-      if (modal.type === "create") await api.post(ep, payload);
-      else await api.put(`${ep}/${modal.item.id}`, payload);
+      if (formMode === "create") await api.post(ep, payload);
+      else await api.put(`${ep}/${editingItem.id}`, payload);
       toast.success("Saved!");
-      setModal(null);
+      closeForm();
       load();
     } catch (e) { toast.error(e.response?.data?.detail || "Error"); }
   };
@@ -67,36 +90,20 @@ export default function MasterDataPage() {
         ))}
       </div>
 
-      <div className="card p-0 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              {["#", "Name", "Description", ...(tab === "Districts" ? ["Region"] : []), "Actions"].map((h) => (
-                <th key={h} className="table-header px-4 py-3">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {items.map((item, i) => (
-              <tr key={item.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm text-gray-400">{i + 1}</td>
-                <td className="px-4 py-3 text-sm font-medium">{item.name}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{item.description ?? "—"}</td>
-                {tab === "Districts" && <td className="px-4 py-3 text-sm text-gray-500">{regions.find((r) => r.id === item.region_id)?.name ?? "—"}</td>}
-                <td className="px-4 py-3 flex gap-2">
-                  <button onClick={() => openEdit(item)} className="btn-secondary py-1 px-2 text-xs"><HiOutlinePencil /></button>
-                  <button onClick={() => del(item.id)} className="btn-danger py-1 px-2 text-xs"><HiOutlineTrash /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {modal && (
-        <Modal title={modal.type === "create" ? `Add ${tab}` : `Edit ${tab}`} onClose={() => setModal(null)}>
+      {formMode && (
+        <div className="card space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-lg font-semibold text-gray-800">{formMode === "create" ? `Add ${tab}` : `Edit ${tab}`}</h3>
+            <button onClick={closeForm} className="btn-secondary w-full sm:w-auto">Cancel</button>
+          </div>
           <div className="space-y-3">
             <div><label className="label">Name</label><input className="input" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} /></div>
+            {tab === "Currencies" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label className="label">Code</label><input className="input" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} /></div>
+                <div><label className="label">Symbol</label><input className="input" value={form.symbol} onChange={(e) => setForm((f) => ({ ...f, symbol: e.target.value }))} /></div>
+              </div>
+            )}
             <div><label className="label">Description</label><textarea className="input" rows={2} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></div>
             {tab === "Districts" && (
               <div>
@@ -107,13 +114,43 @@ export default function MasterDataPage() {
                 </select>
               </div>
             )}
-            <div className="flex gap-3 justify-end pt-2">
-              <button onClick={() => setModal(null)} className="btn-secondary">Cancel</button>
+            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-1">
+              <button onClick={closeForm} className="btn-secondary">Cancel</button>
               <button onClick={save} className="btn-primary">Save</button>
             </div>
           </div>
-        </Modal>
+        </div>
       )}
+
+      <div className="card p-0 overflow-x-auto">
+        <table className="min-w-[820px] w-full divide-y divide-gray-200">
+          <thead>
+            <tr>
+              {["#", "Name", ...(tab === "Currencies" ? ["Code", "Symbol"] : []), "Description", ...(tab === "Districts" ? ["Region"] : []), "Actions"].map((h) => (
+                <th key={h} className="table-header px-4 py-3">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {items.map((item, i) => (
+              <tr key={item.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3 text-sm text-gray-400">{i + 1}</td>
+                <td className="px-4 py-3 text-sm font-medium">{item.name}</td>
+                {tab === "Currencies" && <td className="px-4 py-3 text-sm text-gray-500">{item.code ?? "—"}</td>}
+                {tab === "Currencies" && <td className="px-4 py-3 text-sm text-gray-500">{item.symbol ?? "—"}</td>}
+                <td className="px-4 py-3 text-sm text-gray-500">{item.description ?? "—"}</td>
+                {tab === "Districts" && <td className="px-4 py-3 text-sm text-gray-500">{regions.find((r) => r.id === item.region_id)?.name ?? "—"}</td>}
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-2 min-w-[84px]">
+                    <button onClick={() => openEdit(item)} className="btn-secondary py-1 px-2 text-xs"><HiOutlinePencil /></button>
+                    <button onClick={() => del(item.id)} className="btn-danger py-1 px-2 text-xs"><HiOutlineTrash /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

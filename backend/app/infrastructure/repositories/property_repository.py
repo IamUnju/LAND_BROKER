@@ -12,6 +12,47 @@ class PropertyRepository(IPropertyRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
 
+    async def _resolve_amenity_models(self, amenities_input) -> list[AmenityModel]:
+        if not amenities_input:
+            return []
+
+        ordered_names: list[str] = []
+        seen = set()
+        for item in amenities_input:
+            if isinstance(item, dict):
+                raw_name = item.get("name", "")
+            else:
+                raw_name = item
+            name = str(raw_name).strip()
+            if not name:
+                continue
+            key = name.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            ordered_names.append(name)
+
+        if not ordered_names:
+            return []
+
+        lowered = [name.lower() for name in ordered_names]
+        existing_result = await self._session.execute(
+            select(AmenityModel).where(func.lower(AmenityModel.name).in_(lowered))
+        )
+        existing = {row.name.lower(): row for row in existing_result.scalars().all()}
+
+        resolved = []
+        for name in ordered_names:
+            key = name.lower()
+            amenity_model = existing.get(key)
+            if not amenity_model:
+                amenity_model = AmenityModel(name=name)
+                self._session.add(amenity_model)
+                await self._session.flush()
+                existing[key] = amenity_model
+            resolved.append(amenity_model)
+        return resolved
+
     def _to_entity(self, model: PropertyModel) -> Property:
         # Safely read relationship names if already loaded
         try:
@@ -28,6 +69,14 @@ class PropertyRepository(IPropertyRepository):
         except Exception:
             district_name = None
             region_name = None
+        try:
+            currency_name = model.currency.name if model.currency else None
+            currency_code = model.currency.code if model.currency else None
+            currency_symbol = model.currency.symbol if model.currency else None
+        except Exception:
+            currency_name = None
+            currency_code = None
+            currency_symbol = None
         # Safely read rich relationship data (images/amenities/reviews may not be loaded)
         try:
             images = [
@@ -79,6 +128,7 @@ class PropertyRepository(IPropertyRepository):
             property_type_id=model.property_type_id,
             listing_type_id=model.listing_type_id,
             district_id=model.district_id,
+            currency_id=model.currency_id,
             price=Decimal(str(model.price)),
             bedrooms=model.bedrooms,
             bathrooms=model.bathrooms,
@@ -96,6 +146,9 @@ class PropertyRepository(IPropertyRepository):
             listing_type_name=lt_name,
             district_name=district_name,
             region_name=region_name,
+            currency_name=currency_name,
+            currency_code=currency_code,
+            currency_symbol=currency_symbol,
             images=images,
             amenities=amenities,
             reviews=reviews_data,
@@ -151,6 +204,7 @@ class PropertyRepository(IPropertyRepository):
             property_type_id=prop.property_type_id,
             listing_type_id=prop.listing_type_id,
             district_id=prop.district_id,
+            currency_id=prop.currency_id,
             price=prop.price,
             bedrooms=prop.bedrooms,
             bathrooms=prop.bathrooms,
@@ -163,6 +217,21 @@ class PropertyRepository(IPropertyRepository):
             longitude=prop.longitude,
             broker_id=prop.broker_id,
         )
+        for idx, image in enumerate(prop.images or []):
+            url = (image.get("url") or "").strip() if isinstance(image, dict) else str(image).strip()
+            if not url:
+                continue
+            model.images.append(
+                PropertyImageModel(
+                    url=url,
+                    caption=image.get("caption") if isinstance(image, dict) else None,
+                    is_primary=bool(image.get("is_primary", idx == 0)) if isinstance(image, dict) else idx == 0,
+                    display_order=int(image.get("display_order", idx)) if isinstance(image, dict) else idx,
+                )
+            )
+
+        model.amenities = await self._resolve_amenity_models(prop.amenities or [])
+
         self._session.add(model)
         await self._session.flush()
         await self._session.refresh(model)
@@ -175,6 +244,7 @@ class PropertyRepository(IPropertyRepository):
                 selectinload(PropertyModel.property_type),
                 selectinload(PropertyModel.listing_type),
                 selectinload(PropertyModel.district).selectinload(DistrictModel.region),
+                selectinload(PropertyModel.currency),
                 selectinload(PropertyModel.images),
                 selectinload(PropertyModel.amenities),
                 selectinload(PropertyModel.reviews),
@@ -191,6 +261,9 @@ class PropertyRepository(IPropertyRepository):
             selectinload(PropertyModel.property_type),
             selectinload(PropertyModel.listing_type),
             selectinload(PropertyModel.district).selectinload(DistrictModel.region),
+            selectinload(PropertyModel.currency),
+            selectinload(PropertyModel.images),
+            selectinload(PropertyModel.amenities),
             selectinload(PropertyModel.owner),
             selectinload(PropertyModel.broker),
         )
@@ -211,6 +284,7 @@ class PropertyRepository(IPropertyRepository):
             selectinload(PropertyModel.property_type),
             selectinload(PropertyModel.listing_type),
             selectinload(PropertyModel.district).selectinload(DistrictModel.region),
+            selectinload(PropertyModel.currency),
             selectinload(PropertyModel.owner),
             selectinload(PropertyModel.broker),
             selectinload(PropertyModel.images),
@@ -227,10 +301,29 @@ class PropertyRepository(IPropertyRepository):
         model = result.scalar_one_or_none()
         if not model:
             raise ValueError(f"Property {prop.id} not found")
-        for field in ["title", "property_type_id", "listing_type_id", "district_id", "price",
+        for field in ["title", "property_type_id", "listing_type_id", "district_id", "currency_id", "price",
                       "bedrooms", "bathrooms", "area_sqm", "address", "description",
                       "is_furnished", "is_published", "latitude", "longitude", "broker_id"]:
             setattr(model, field, getattr(prop, field))
+
+        if prop.images is not None:
+            model.images.clear()
+            for idx, image in enumerate(prop.images):
+                url = (image.get("url") or "").strip() if isinstance(image, dict) else str(image).strip()
+                if not url:
+                    continue
+                model.images.append(
+                    PropertyImageModel(
+                        url=url,
+                        caption=image.get("caption") if isinstance(image, dict) else None,
+                        is_primary=bool(image.get("is_primary", idx == 0)) if isinstance(image, dict) else idx == 0,
+                        display_order=int(image.get("display_order", idx)) if isinstance(image, dict) else idx,
+                    )
+                )
+
+        if prop.amenities is not None:
+            model.amenities = await self._resolve_amenity_models(prop.amenities)
+
         await self._session.flush()
         await self._session.refresh(model)
         return self._to_entity(model)
