@@ -8,6 +8,7 @@ from app.application.dto.master_dto import (
     RegionCreateDTO, RegionUpdateDTO, RegionResponseDTO,
     DistrictCreateDTO, DistrictUpdateDTO, DistrictResponseDTO,
     CurrencyCreateDTO, CurrencyUpdateDTO, CurrencyResponseDTO,
+    RoomTypeCreateDTO, RoomTypeUpdateDTO, RoomTypeResponseDTO,
     StatsDTO,
 )
 from app.application.use_cases.master_use_case import MasterUseCase
@@ -62,6 +63,11 @@ async def list_districts(
 @public_router.get("/currencies", response_model=List[CurrencyResponseDTO])
 async def list_currencies(use_case: MasterUseCase = Depends(get_master_use_case)):
     return await use_case.list_currencies()
+
+
+@public_router.get("/room-types", response_model=List[RoomTypeResponseDTO])
+async def list_room_types(use_case: MasterUseCase = Depends(get_master_use_case)):
+    return await use_case.list_room_types()
 
 
 # ─── ADMIN-ONLY Master Data CRUD ─────────────────────────────────────────────
@@ -233,6 +239,34 @@ async def delete_currency(
     await use_case.delete_currency(currency_id)
 
 
+@router.post("/room-types", response_model=RoomTypeResponseDTO, status_code=201)
+async def create_room_type(
+    dto: RoomTypeCreateDTO,
+    _: User = Depends(require_roles("ADMIN")),
+    use_case: MasterUseCase = Depends(get_master_use_case),
+):
+    return await use_case.create_room_type(dto)
+
+
+@router.put("/room-types/{type_id}", response_model=RoomTypeResponseDTO)
+async def update_room_type(
+    type_id: int,
+    dto: RoomTypeUpdateDTO,
+    _: User = Depends(require_roles("ADMIN")),
+    use_case: MasterUseCase = Depends(get_master_use_case),
+):
+    return await use_case.update_room_type(type_id, dto)
+
+
+@router.delete("/room-types/{type_id}", status_code=204)
+async def delete_room_type(
+    type_id: int,
+    _: User = Depends(require_roles("ADMIN")),
+    use_case: MasterUseCase = Depends(get_master_use_case),
+):
+    await use_case.delete_room_type(type_id)
+
+
 @router.get("/stats", response_model=StatsDTO)
 async def get_system_stats(
     _: User = Depends(require_roles("ADMIN")),
@@ -259,6 +293,7 @@ async def get_system_stats(
     pending_maintenance = sum(1 for m in maintenance if m.status.value == "PENDING")
     open_maintenance = pending_maintenance
     total_revenue = sum(float(p.amount) for p in payments if p.status.value == "PAID")
+    active_users = sum(1 for u in all_users if getattr(u, "is_active", False))
     payments_this_month = sum(
         1 for p in payments
         if p.due_date and p.due_date.year == today.year and p.due_date.month == today.month
@@ -272,6 +307,7 @@ async def get_system_stats(
 
     return StatsDTO(
         total_users=total_users,
+        active_users=active_users,
         total_properties=total_properties,
         total_units=total_units,
         total_tenants=len(tenants),

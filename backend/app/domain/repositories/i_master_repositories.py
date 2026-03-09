@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from app.domain.entities.role import Role
-from app.domain.entities.property_type import PropertyType, ListingType
+from app.domain.entities.property_type import PropertyType, ListingType, RoomType
 from app.domain.entities.location import Region, District
 from app.domain.entities.currency import Currency
 
@@ -149,4 +149,27 @@ class ICurrencyRepository(ABC):
 
     @abstractmethod
     async def delete(self, currency_id: int) -> bool:
+        pass
+
+
+class IRoomTypeRepository(ABC):
+
+    @abstractmethod
+    async def create(self, room_type: RoomType) -> RoomType:
+        pass
+
+    @abstractmethod
+    async def get_by_id(self, type_id: int) -> Optional[RoomType]:
+        pass
+
+    @abstractmethod
+    async def get_all(self) -> List[RoomType]:
+        pass
+
+    @abstractmethod
+    async def update(self, room_type: RoomType) -> RoomType:
+        pass
+
+    @abstractmethod
+    async def delete(self, type_id: int) -> bool:
         pass

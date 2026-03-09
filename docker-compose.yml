@@ -52,7 +52,8 @@ services:
     depends_on:
       - backend
     environment:
-      VITE_API_BASE_URL: http://localhost:8000/api/v1
+      # Use same-origin API base so Vite dev proxy forwards /api/* to backend service.
+      VITE_API_BASE_URL: /api/v1
     ports:
       - "3000:3000"
     volumes:

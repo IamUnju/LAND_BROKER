@@ -5,6 +5,7 @@ import PropertyHeader from "../../components/property/PropertyHeader";
 import ImageGallery from "../../components/property/ImageGallery";
 import AmenitiesGrid from "../../components/property/AmenitiesGrid";
 import BookingCard from "../../components/property/BookingCard";
+import PublicFooter from "../../components/public/PublicFooter";
 import { HiOutlineHome } from "react-icons/hi";
 import { MdVerified, MdOutlineCheckCircle, MdOutlineAcUnit, MdOutlineKey } from "react-icons/md";
 
@@ -66,6 +67,7 @@ export default function PropertyDetailPage() {
     address,
     bedrooms,
     bathrooms,
+    room_type,
     area_sqm,
     is_furnished,
     description,
@@ -96,6 +98,7 @@ export default function PropertyDetailPage() {
   const specLine = dot([
     bedrooms > 0 && `${bedrooms} bedroom${bedrooms !== 1 ? "s" : ""}`,
     bathrooms > 0 && `${bathrooms} bathroom${bathrooms !== 1 ? "s" : ""}`,
+    room_type && `Room type: ${room_type}`,
     area_sqm && `${parseFloat(area_sqm).toLocaleString()} m²`,
     is_furnished && "Furnished",
   ]);
@@ -291,10 +294,7 @@ export default function PropertyDetailPage() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-100 py-8 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} Broker · All rights reserved
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

@@ -8,12 +8,16 @@ export default function PaymentsPage() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const load = () => api.get("/payments").then(({ data }) => { setPayments(data); setLoading(false); });
+  const load = () => api.get("/payments/").then(({ data }) => { setPayments(data); setLoading(false); });
   useEffect(() => { load(); }, []);
 
   const markPaid = async (id) => {
     try {
-      await api.patch(`/payments/${id}/mark-paid`, { payment_method: "BANK_TRANSFER", transaction_reference: "MANUAL" });
+      await api.patch(`/payments/${id}/pay`, {
+        payment_date: new Date().toISOString().slice(0, 10),
+        payment_method: "BANK_TRANSFER",
+        reference_number: "MANUAL",
+      });
       toast.success("Marked as paid");
       load();
     } catch (e) { toast.error(e.response?.data?.detail || "Error"); }

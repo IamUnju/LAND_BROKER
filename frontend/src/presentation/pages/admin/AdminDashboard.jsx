@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../../../infrastructure/api";
 import StatCard from "../../components/StatCard";
+import MiniMetricChart from "../../components/dashboard/MiniMetricChart";
 import { HiOutlineUsers, HiOutlineOfficeBuilding, HiOutlineKey, HiOutlineDocumentText, HiOutlineCurrencyDollar, HiOutlineCog } from "react-icons/hi";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
@@ -27,6 +28,28 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-gray-800">System Overview</h2>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MiniMetricChart
+          title="Payments"
+          value={stats?.payments_this_month ?? 0}
+          toneKey="emerald"
+          hint="This month"
+        />
+        <MiniMetricChart
+          title="Users"
+          value={stats?.total_users ?? 0}
+          toneKey="blue"
+          hint="All users"
+        />
+        <MiniMetricChart
+          title="Active Users"
+          value={stats?.active_users ?? 0}
+          toneKey="amber"
+          hint="Enabled"
+        />
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => <StatCard key={c.title} {...c} />)}
       </div>

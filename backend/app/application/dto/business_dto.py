@@ -193,5 +193,8 @@ class CommissionResponseDTO(BaseModel):
     notes: Optional[str]
     paid_at: Optional[datetime]
     created_at: Optional[datetime]
+    # Enriched display fields
+    property_title: Optional[str] = None
+    broker_name: Optional[str] = None
 
     model_config = {"from_attributes": True}

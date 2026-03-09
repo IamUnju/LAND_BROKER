@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../../../infrastructure/api";
 import StatCard from "../../components/StatCard";
+import MiniMetricChart from "../../components/dashboard/MiniMetricChart";
 import Badge from "../../components/Badge";
 import { HiOutlineDocumentText, HiOutlineCurrencyDollar, HiOutlineCog, HiOutlineHeart } from "react-icons/hi";
 
@@ -11,9 +12,9 @@ export default function TenantDashboard() {
   useEffect(() => {
     Promise.allSettled([
       api.get("/leases/my"),
-      api.get("/payments"),
-      api.get("/maintenance"),
-      api.get("/favorites"),
+      api.get("/payments/"),
+      api.get("/maintenance/"),
+      api.get("/favorites/"),
     ]).then(([l, p, m, f]) => {
       setLease(l.value?.data ?? null);
       setStats({
@@ -27,6 +28,13 @@ export default function TenantDashboard() {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-gray-800">My Dashboard</h2>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <MiniMetricChart title="Pending Payments" value={stats.pending} toneKey="amber" hint="Outstanding" />
+        <MiniMetricChart title="Open Maintenance" value={stats.maintenance} toneKey="rose" hint="In progress" />
+        <MiniMetricChart title="Saved Properties" value={stats.favorites} toneKey="blue" hint="Favorites" />
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard title="Pending Payments" value={stats.pending} icon={HiOutlineCurrencyDollar} color="yellow" />
         <StatCard title="Open Maintenance" value={stats.maintenance} icon={HiOutlineCog} color="red" />

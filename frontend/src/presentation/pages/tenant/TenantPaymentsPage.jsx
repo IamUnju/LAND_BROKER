@@ -5,7 +5,7 @@ import Badge from "../../components/Badge";
 export default function TenantPaymentsPage() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { api.get("/payments").then(({ data }) => { setPayments(data); setLoading(false); }).catch(() => setLoading(false)); }, []);
+  useEffect(() => { api.get("/payments/").then(({ data }) => { setPayments(data); setLoading(false); }).catch(() => setLoading(false)); }, []);
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-gray-800">My Payments</h2>

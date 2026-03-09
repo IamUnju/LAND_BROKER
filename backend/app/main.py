@@ -22,6 +22,7 @@ app = FastAPI(
     description="Smart Property & Rental Management SaaS Platform API",
     docs_url="/docs",
     redoc_url="/redoc",
+    redirect_slashes=False,
 )
 
 BASE_DIR = Path(__file__).resolve().parent

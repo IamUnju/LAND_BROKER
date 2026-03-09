@@ -55,6 +55,7 @@ class PropertyCreateDTO(BaseModel):
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
     broker_id: Optional[int] = None
+    room_type: Optional[str] = None
     is_published: bool = True
     images: List[str] = Field(min_length=3, max_length=5)
     amenities: List[str] = []
@@ -77,6 +78,7 @@ class PropertyUpdateDTO(BaseModel):
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
     broker_id: Optional[int] = None
+    room_type: Optional[str] = None
     images: Optional[List[str]] = Field(default=None, min_length=3, max_length=5)
     amenities: Optional[List[str]] = None
 
@@ -100,6 +102,7 @@ class PropertyResponseDTO(BaseModel):
     latitude: Optional[Decimal]
     longitude: Optional[Decimal]
     broker_id: Optional[int]
+    room_type: Optional[str] = None
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
     # Enriched display fields
@@ -110,6 +113,8 @@ class PropertyResponseDTO(BaseModel):
     currency_name: Optional[str] = None
     currency_code: Optional[str] = None
     currency_symbol: Optional[str] = None
+    service_fee_rate: Decimal = Decimal("0.00")
+    service_fee_amount: Decimal = Decimal("0.00")
     # Contact info (available even on listing cards)
     host_name: Optional[str] = None
     broker_name: Optional[str] = None

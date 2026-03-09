@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query
-from typing import List
+from typing import List, Optional
 from app.application.dto.business_dto import (
     TenantCreateDTO, TenantUpdateDTO, TenantResponseDTO,
     LeaseCreateDTO, LeaseUpdateDTO, LeaseResponseDTO,
@@ -428,7 +428,7 @@ async def my_favorites(
 commission_router = APIRouter(prefix="/commissions", tags=["Commissions"])
 
 
-@commission_router.post("/", response_model=CommissionResponseDTO, status_code=201)
+@commission_router.post("", response_model=CommissionResponseDTO, status_code=201)
 async def create_commission(
     dto: CommissionCreateDTO,
     _: User = Depends(require_roles("ADMIN")),
@@ -437,14 +437,23 @@ async def create_commission(
     return await use_case.create_commission(dto)
 
 
-@commission_router.get("/", response_model=List[CommissionResponseDTO])
+@commission_router.get("", response_model=List[CommissionResponseDTO])
 async def list_commissions(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
+    property_id: Optional[int] = Query(None),
+    broker_id: Optional[int] = Query(None),
+    status: Optional[str] = Query(None),
     _: User = Depends(require_roles("ADMIN")),
     use_case: CommissionUseCase = Depends(get_commission_use_case),
 ):
-    return await use_case.list_commissions(skip=skip, limit=limit)
+    return await use_case.list_commissions(
+        skip=skip,
+        limit=limit,
+        property_id=property_id,
+        broker_id=broker_id,
+        status=status,
+    )
 
 
 @commission_router.get("/broker/{broker_id}", response_model=List[CommissionResponseDTO])

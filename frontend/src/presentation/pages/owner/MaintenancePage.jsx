@@ -8,11 +8,11 @@ export default function MaintenancePage() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const load = () => api.get("/maintenance").then(({ data }) => { setRequests(data); setLoading(false); });
+  const load = () => api.get("/maintenance/").then(({ data }) => { setRequests(data); setLoading(false); });
   useEffect(() => { load(); }, []);
 
   const updateStatus = async (id, status) => {
-    try { await api.patch(`/maintenance/${id}/status`, { status }); toast.success("Updated"); load(); }
+    try { await api.put(`/maintenance/${id}`, { status }); toast.success("Updated"); load(); }
     catch (e) { toast.error(e.response?.data?.detail || "Error"); }
   };
 

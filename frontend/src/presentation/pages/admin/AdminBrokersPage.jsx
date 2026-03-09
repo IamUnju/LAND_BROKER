@@ -20,7 +20,7 @@ export default function AdminBrokersPage() {
     setSelected(broker);
     setProperties([]);
     setLoadingProps(true);
-    api.get(`/properties/?broker_id=${broker.id}&limit=100`)
+    api.get(`/properties?broker_id=${broker.id}&limit=100`)
       .then(({ data }) => { setProperties(data?.properties ?? []); setLoadingProps(false); })
       .catch(() => setLoadingProps(false));
   };

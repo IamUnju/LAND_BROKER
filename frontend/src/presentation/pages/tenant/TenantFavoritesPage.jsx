@@ -8,7 +8,7 @@ export default function TenantFavoritesPage() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const load = () => api.get("/favorites").then(({ data }) => { setFavorites(data); setLoading(false); });
+  const load = () => api.get("/favorites/").then(({ data }) => { setFavorites(data); setLoading(false); });
   useEffect(() => { load(); }, []);
 
   const remove = async (propertyId) => {

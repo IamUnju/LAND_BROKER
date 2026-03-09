@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../../infrastructure/api";
 import Badge from "../../components/Badge";
 import toast from "react-hot-toast";
@@ -19,6 +20,8 @@ function parseAmenities(value) {
 }
 
 export default function BrokerPropertiesPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const formRef = useRef(null);
   const [items, setItems] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [propTypes, setPropTypes] = useState([]);
@@ -26,6 +29,16 @@ export default function BrokerPropertiesPage() {
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState(emptyForm());
   const [loading, setLoading] = useState(true);
+
+  const scrollToForm = () => {
+    requestAnimationFrame(() => {
+      if (formRef.current) {
+        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
 
   const load = () => {
     setLoading(true);
@@ -48,6 +61,7 @@ export default function BrokerPropertiesPage() {
   }, []);
 
   const openEdit = (p) => {
+    setSearchParams({ mode: "edit", id: String(p.id) });
     setForm({
       title: p.title,
       description: p.description ?? "",
@@ -62,13 +76,51 @@ export default function BrokerPropertiesPage() {
       amenities_text: (p.amenities ?? []).map((a) => a.name).filter(Boolean).join("\n"),
     });
     setEditingItem(p);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToForm();
   };
 
   const closeEdit = () => {
     setEditingItem(null);
     setForm(emptyForm());
+    setSearchParams({});
   };
+
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+    const id = Number(searchParams.get("id"));
+    if (mode === "edit" && id) {
+      const p = items.find((item) => item.id === id);
+      if (p && editingItem?.id !== p.id) {
+        setForm({
+          title: p.title,
+          description: p.description ?? "",
+          address: p.address,
+          price: p.price ?? "",
+          bedrooms: p.bedrooms ?? "",
+          bathrooms: p.bathrooms ?? "",
+          is_furnished: p.is_furnished ?? false,
+          property_type_id: p.property_type_id,
+          listing_type_id: p.listing_type_id,
+          district_id: p.district_id ?? "",
+          amenities_text: (p.amenities ?? []).map((a) => a.name).filter(Boolean).join("\n"),
+        });
+        setEditingItem(p);
+      }
+      scrollToForm();
+      return;
+    }
+
+    if (!mode && editingItem) {
+      setEditingItem(null);
+      setForm(emptyForm());
+    }
+  }, [searchParams, items, editingItem]);
+
+  useEffect(() => {
+    if (editingItem && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [editingItem]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -114,7 +166,7 @@ export default function BrokerPropertiesPage() {
       </div>
 
       {editingItem && (
-        <div className="card space-y-4">
+        <div ref={formRef} className="card space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-lg font-semibold text-gray-800">Edit Property</h3>
             <button onClick={closeEdit} className="btn-secondary w-full sm:w-auto">Cancel</button>

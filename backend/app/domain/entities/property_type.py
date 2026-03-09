@@ -40,3 +40,22 @@ class ListingType:
         if self.name.upper() not in valid_types:
             raise ValueError(f"ListingType must be one of {valid_types}")
         self.name = self.name.strip().upper()
+
+
+@dataclass
+class RoomType:
+    name: str
+    description: Optional[str] = None
+    id: Optional[int] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    def __post_init__(self):
+        self._validate()
+
+    def _validate(self):
+        if not self.name or not self.name.strip():
+            raise ValueError("RoomType name cannot be empty")
+        if len(self.name) > 100:
+            raise ValueError("RoomType name cannot exceed 100 characters")
+        self.name = self.name.strip()

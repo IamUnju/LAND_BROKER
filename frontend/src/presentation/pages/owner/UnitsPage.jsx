@@ -1,16 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../../infrastructure/api";
 import Badge from "../../components/Badge";
 import toast from "react-hot-toast";
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash } from "react-icons/hi";
 
 export default function UnitsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const formRef = useRef(null);
   const [units, setUnits] = useState([]);
   const [properties, setProperties] = useState([]);
   const [formMode, setFormMode] = useState(null);
   const [editingUnit, setEditingUnit] = useState(null);
   const [form, setForm] = useState({ unit_number: "", floor: "", area_sqft: "", rent_amount: "", property_id: "" });
   const [loading, setLoading] = useState(true);
+
+  const scrollToForm = () => {
+    requestAnimationFrame(() => {
+      if (formRef.current) {
+        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
 
   const load = () => api.get("/units/").then(({ data }) => { setUnits(data); setLoading(false); });
 
@@ -23,20 +36,62 @@ export default function UnitsPage() {
     setFormMode(null);
     setEditingUnit(null);
     setForm({ unit_number: "", floor: "", area_sqft: "", rent_amount: "", property_id: "" });
+    setSearchParams({});
   };
 
   const openCreate = () => {
+    setSearchParams({ mode: "create" });
     setForm({ unit_number: "", floor: "", area_sqft: "", rent_amount: "", property_id: "" });
     setEditingUnit(null);
     setFormMode("create");
+    scrollToForm();
   };
 
   const openEdit = (u) => {
+    setSearchParams({ mode: "edit", id: String(u.id) });
     setForm({ unit_number: u.unit_number, floor: u.floor ?? "", area_sqft: u.area_sqft ?? "", rent_amount: u.rent_amount ?? "", property_id: u.property_id });
     setEditingUnit(u);
     setFormMode("edit");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToForm();
   };
+
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+    const id = Number(searchParams.get("id"));
+
+    if (mode === "create") {
+      if (formMode !== "create") {
+        setForm({ unit_number: "", floor: "", area_sqft: "", rent_amount: "", property_id: "" });
+        setEditingUnit(null);
+        setFormMode("create");
+      }
+      scrollToForm();
+      return;
+    }
+
+    if (mode === "edit" && id) {
+      const u = units.find((item) => item.id === id);
+      if (u && editingUnit?.id !== u.id) {
+        setForm({ unit_number: u.unit_number, floor: u.floor ?? "", area_sqft: u.area_sqft ?? "", rent_amount: u.rent_amount ?? "", property_id: u.property_id });
+        setEditingUnit(u);
+        setFormMode("edit");
+      }
+      scrollToForm();
+      return;
+    }
+
+    if (formMode) {
+      setFormMode(null);
+      setEditingUnit(null);
+      setForm({ unit_number: "", floor: "", area_sqft: "", rent_amount: "", property_id: "" });
+    }
+  }, [searchParams, units, formMode, editingUnit]);
+
+  useEffect(() => {
+    if (formMode && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [formMode]);
   const handle = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
   const save = async () => {
@@ -62,7 +117,7 @@ export default function UnitsPage() {
       </div>
 
       {formMode && (
-        <div className="card space-y-4">
+        <div ref={formRef} className="card space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-lg font-semibold text-gray-800">{formMode === "create" ? "Add Unit" : "Edit Unit"}</h3>
             <button onClick={closeForm} className="btn-secondary w-full sm:w-auto">Cancel</button>

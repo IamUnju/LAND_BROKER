@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../../infrastructure/api";
 import { useAuth } from "../../../context/AuthContext";
+import PublicFooter from "../../components/public/PublicFooter";
 import {
   HiOutlineSearch, HiOutlineHeart, HiHeart,
   HiOutlineAdjustments, HiStar, HiOutlineOfficeBuilding,
@@ -87,6 +88,9 @@ function PropertyCard({ p, index, favorited, onFavorite }) {
           </span>
         </div>
         <p className="text-sm text-gray-500 truncate">{p.bedrooms ?? 0} bed · {p.bathrooms ?? 0} bath{p.is_furnished ? " · Furnished" : ""}</p>
+        {p.room_type && (
+          <p className="mt-1 text-xs text-gray-500 truncate">Room type: {p.room_type}</p>
+        )}
         <p className="mt-1 text-sm text-gray-800">
           <span className="font-semibold">{currencyLabel} {Number(p.price).toLocaleString()}</span>
           <span className="text-gray-500"> / {p.listing_type_name?.toLowerCase().includes("rent") ? "month" : "total"}</span>
@@ -411,6 +415,12 @@ export default function MarketplacePage() {
           </div>
         )}
       </main>
+
+      <PublicFooter
+        onSelectQuickFilter={(quick) => {
+          setFilters((f) => ({ ...f, ...quick, skip: 0 }));
+        }}
+      />
     </div>
   );
 }

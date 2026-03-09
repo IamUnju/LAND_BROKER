@@ -13,7 +13,7 @@ export default function TenantMaintenancePage() {
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const load = () => api.get("/maintenance").then(({ data }) => { setRequests(data); setLoading(false); });
+  const load = () => api.get("/maintenance/").then(({ data }) => { setRequests(data); setLoading(false); });
 
   useEffect(() => {
     api.get("/units/").then(({ data }) => setUnits(data)).catch(() => {});
@@ -24,7 +24,7 @@ export default function TenantMaintenancePage() {
 
   const submit = async () => {
     try {
-      await api.post("/maintenance", { ...form, unit_id: Number(form.unit_id) });
+      await api.post("/maintenance/", { ...form, unit_id: Number(form.unit_id) });
       toast.success("Request submitted!");
       setShowCreateForm(false);
       setForm({ title: "", description: "", priority: "MEDIUM", unit_id: "" });

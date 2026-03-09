@@ -3,14 +3,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.domain.repositories.i_master_repositories import (
     IRoleRepository, IPropertyTypeRepository, IListingTypeRepository,
-    IRegionRepository, IDistrictRepository, ICurrencyRepository,
+    IRegionRepository, IDistrictRepository, ICurrencyRepository, IRoomTypeRepository,
 )
 from app.domain.entities.role import Role
-from app.domain.entities.property_type import PropertyType, ListingType
+from app.domain.entities.property_type import PropertyType, ListingType, RoomType
 from app.domain.entities.location import Region, District
 from app.domain.entities.currency import Currency
 from app.infrastructure.db.models import (
-    RoleModel, PropertyTypeModel, ListingTypeModel, RegionModel, DistrictModel, CurrencyModel,
+    RoleModel, PropertyTypeModel, ListingTypeModel, RegionModel, DistrictModel, CurrencyModel, RoomTypeModel,
 )
 
 
@@ -297,6 +297,59 @@ class CurrencyRepository(ICurrencyRepository):
 
     async def delete(self, currency_id: int) -> bool:
         result = await self._session.execute(select(CurrencyModel).where(CurrencyModel.id == currency_id))
+        model = result.scalar_one_or_none()
+        if not model:
+            return False
+        await self._session.delete(model)
+        await self._session.flush()
+        return True
+
+
+class RoomTypeRepository(IRoomTypeRepository):
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    def _to_entity(self, model: RoomTypeModel) -> RoomType:
+        return RoomType(
+            id=model.id,
+            name=model.name,
+            description=model.description,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+        )
+
+    async def create(self, room_type: RoomType) -> RoomType:
+        model = RoomTypeModel(
+            name=room_type.name,
+            description=room_type.description,
+        )
+        self._session.add(model)
+        await self._session.flush()
+        await self._session.refresh(model)
+        return self._to_entity(model)
+
+    async def get_by_id(self, type_id: int) -> Optional[RoomType]:
+        result = await self._session.execute(select(RoomTypeModel).where(RoomTypeModel.id == type_id))
+        model = result.scalar_one_or_none()
+        return self._to_entity(model) if model else None
+
+    async def get_all(self) -> List[RoomType]:
+        result = await self._session.execute(select(RoomTypeModel).order_by(RoomTypeModel.name))
+        return [self._to_entity(m) for m in result.scalars().all()]
+
+    async def update(self, room_type: RoomType) -> RoomType:
+        result = await self._session.execute(select(RoomTypeModel).where(RoomTypeModel.id == room_type.id))
+        model = result.scalar_one_or_none()
+        if not model:
+            raise ValueError(f"RoomType {room_type.id} not found")
+        model.name = room_type.name
+        model.description = room_type.description
+        await self._session.flush()
+        await self._session.refresh(model)
+        return self._to_entity(model)
+
+    async def delete(self, type_id: int) -> bool:
+        result = await self._session.execute(select(RoomTypeModel).where(RoomTypeModel.id == type_id))
         model = result.scalar_one_or_none()
         if not model:
             return False

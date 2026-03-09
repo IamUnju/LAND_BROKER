@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../../infrastructure/api";
 import Badge from "../../components/Badge";
 import toast from "react-hot-toast";
 import { HiOutlinePencil, HiOutlineCheck, HiOutlineBan, HiOutlineUserAdd, HiOutlineKey } from "react-icons/hi";
 
 export default function UsersPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const panelRef = useRef(null);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [editUserId, setEditUserId] = useState(null);
@@ -20,13 +23,76 @@ export default function UsersPage() {
   const selectedEditUser = users.find((u) => u.id === editUserId) || null;
   const selectedPasswordUser = users.find((u) => u.id === passwordUserId) || null;
 
+  const scrollToPanel = () => {
+    requestAnimationFrame(() => {
+      if (panelRef.current) {
+        panelRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
+
   const load = async () => {
-    const [u, r] = await Promise.all([api.get("/users/"), api.get("/master/roles")]);
+    const [u, r] = await Promise.all([api.get("/users"), api.get("/master/roles")]);
     setUsers(u.data?.users ?? []);
     setRoles(r.data);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+    const id = Number(searchParams.get("id"));
+
+    if (mode === "create") {
+      if (panelMode !== "create") {
+        setCreateForm({ email: "", password: "", first_name: "", last_name: "", phone: "", role_id: "" });
+        setPanelMode("create");
+        setEditUserId(null);
+        setPasswordUserId(null);
+      }
+      scrollToPanel();
+      return;
+    }
+
+    if (mode === "edit" && id) {
+      const u = users.find((entry) => entry.id === id);
+      if (u && editUserId !== u.id) {
+        setEditUserId(u.id);
+        setForm({ first_name: u.first_name, last_name: u.last_name, phone: u.phone ?? "", role_id: u.role_id });
+        setPanelMode("edit");
+      }
+      scrollToPanel();
+      return;
+    }
+
+    if (mode === "password" && id) {
+      const u = users.find((entry) => entry.id === id);
+      if (u && passwordUserId !== u.id) {
+        setPasswordUserId(u.id);
+        setPasswordForm({ new_password: "", confirm_password: "" });
+        setPanelMode("password");
+      }
+      scrollToPanel();
+      return;
+    }
+
+    if (panelMode) {
+      setPanelMode(null);
+      setEditUserId(null);
+      setPasswordUserId(null);
+      setForm({});
+      setCreateForm({ email: "", password: "", first_name: "", last_name: "", phone: "", role_id: "" });
+      setPasswordForm({ new_password: "", confirm_password: "" });
+    }
+  }, [searchParams, users, panelMode, editUserId, passwordUserId]);
+
+  useEffect(() => {
+    if (panelMode && panelRef.current) {
+      panelRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [panelMode]);
 
   const closePanel = () => {
     setPanelMode(null);
@@ -35,25 +101,30 @@ export default function UsersPage() {
     setForm({});
     setCreateForm({ email: "", password: "", first_name: "", last_name: "", phone: "", role_id: "" });
     setPasswordForm({ new_password: "", confirm_password: "" });
+    setSearchParams({});
   };
 
   const openEdit = (u) => {
+    setSearchParams({ mode: "edit", id: String(u.id) });
     setEditUserId(u.id);
     setForm({ first_name: u.first_name, last_name: u.last_name, phone: u.phone ?? "", role_id: u.role_id });
     setPanelMode("edit");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToPanel();
   };
 
   const openCreate = () => {
+    setSearchParams({ mode: "create" });
     setCreateForm({ email: "", password: "", first_name: "", last_name: "", phone: "", role_id: "" });
     setPanelMode("create");
+    scrollToPanel();
   };
 
   const openPassword = (u) => {
+    setSearchParams({ mode: "password", id: String(u.id) });
     setPasswordUserId(u.id);
     setPasswordForm({ new_password: "", confirm_password: "" });
     setPanelMode("password");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToPanel();
   };
 
   const save = async () => {
@@ -77,7 +148,7 @@ export default function UsersPage() {
     if (!createForm.role_id) return toast.error("Please select a role");
     setCreating(true);
     try {
-      await api.post("/users/", { ...createForm, role_id: Number(createForm.role_id) });
+      await api.post("/users", { ...createForm, role_id: Number(createForm.role_id) });
       toast.success("User created successfully");
       closePanel();
       setCreateForm({ email: "", password: "", first_name: "", last_name: "", phone: "", role_id: "" });
@@ -116,7 +187,7 @@ export default function UsersPage() {
       </div>
 
       {panelMode === "create" && (
-        <div className="card space-y-4">
+        <div ref={panelRef} className="card space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-lg font-semibold text-gray-800">Add New User</h3>
             <button onClick={closePanel} className="btn-secondary w-full sm:w-auto">Cancel</button>
@@ -146,7 +217,7 @@ export default function UsersPage() {
       )}
 
       {panelMode === "edit" && selectedEditUser && (
-        <div className="card space-y-4">
+        <div ref={panelRef} className="card space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-lg font-semibold text-gray-800">Edit User</h3>
             <button onClick={closePanel} className="btn-secondary w-full sm:w-auto">Cancel</button>
@@ -172,7 +243,7 @@ export default function UsersPage() {
       )}
 
       {panelMode === "password" && selectedPasswordUser && (
-        <div className="card space-y-4">
+        <div ref={panelRef} className="card space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-lg font-semibold text-gray-800">Change Password - {selectedPasswordUser.first_name} {selectedPasswordUser.last_name}</h3>
             <button onClick={closePanel} className="btn-secondary w-full sm:w-auto">Cancel</button>

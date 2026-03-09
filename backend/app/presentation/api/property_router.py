@@ -86,18 +86,57 @@ async def my_properties(
     return await use_case.get_owner_properties(owner_id=current_user.id, skip=skip, limit=limit)
 
 
-# ── GET /: admin only ────────────────────────────────────────────────────────
-@router.get("/", response_model=PropertyListDTO)
+# ── GET /: role-aware listing ───────────────────────────────────────────────
+@router.get("", response_model=PropertyListDTO)
 async def list_all_properties(
     filters: PropertyFilterDTO = Depends(_build_filters),
-    current_user: User = Depends(require_roles("ADMIN")),
+    current_user: User = Depends(get_current_user),
     use_case: PropertyUseCase = Depends(get_property_use_case),
 ):
-    return await use_case.list_properties(filters)
+    role = _role(current_user)
+    # Admin sees all properties
+    if role == "ADMIN":
+        return await use_case.list_properties(filters)
+    # Owner sees only their properties
+    if role == "OWNER":
+        owner_filters = PropertyFilterDTO(
+            owner_id=current_user.id,
+            district_id=filters.district_id,
+            property_type_id=filters.property_type_id,
+            listing_type_id=filters.listing_type_id,
+            min_price=filters.min_price,
+            max_price=filters.max_price,
+            bedrooms=filters.bedrooms,
+            is_furnished=filters.is_furnished,
+            broker_id=filters.broker_id,
+            search=filters.search,
+            skip=filters.skip,
+            limit=filters.limit,
+        )
+        return await use_case.list_properties(owner_filters)
+    # Broker sees properties assigned to them
+    if role == "BROKER":
+        broker_filters = PropertyFilterDTO(
+            broker_id=current_user.id,
+            district_id=filters.district_id,
+            property_type_id=filters.property_type_id,
+            listing_type_id=filters.listing_type_id,
+            min_price=filters.min_price,
+            max_price=filters.max_price,
+            bedrooms=filters.bedrooms,
+            is_furnished=filters.is_furnished,
+            owner_id=filters.owner_id,
+            search=filters.search,
+            skip=filters.skip,
+            limit=filters.limit,
+        )
+        return await use_case.list_properties(broker_filters)
+    # Default: return empty list for unrecognized roles
+    return PropertyListDTO(properties=[], total=0)
 
 
 # ── POST /: owner or admin ───────────────────────────────────────────────────
-@router.post("/", response_model=PropertyResponseDTO, status_code=201)
+@router.post("", response_model=PropertyResponseDTO, status_code=201)
 async def create_property(
     dto: PropertyCreateDTO,
     current_user: User = Depends(require_roles("OWNER", "ADMIN")),

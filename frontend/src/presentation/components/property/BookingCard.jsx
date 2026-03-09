@@ -49,12 +49,10 @@ export default function BookingCard({ property }) {
   const [sent, setSent] = useState(false);
 
   const price = parseFloat(property?.price || 0);
+  const currencyLabel = property?.currency_symbol || property?.currency_code || "GH₵";
   const isRent = property?.listing_type_name?.includes("RENT");
   const avgRating = property?.avg_rating || 0;
   const reviewCount = property?.review_count || 0;
-
-  // Simulated "original price" for discount display (10% higher)
-  const originalPrice = Math.round(price * 1.1);
 
   const nights = (() => {
     if (!checkIn || !checkOut) return 0;
@@ -63,7 +61,11 @@ export default function BookingCard({ property }) {
   })();
 
   const baseTotal = isRent && nights > 0 ? price * nights : price;
-  const serviceFee = Math.round(baseTotal * 0.05);
+  const dbServiceFeeRate = Number(property?.service_fee_rate || 0);
+  const dbServiceFeeAmount = Number(property?.service_fee_amount || 0);
+  const serviceFee = isRent && nights > 0
+    ? Math.round(baseTotal * (dbServiceFeeRate / 100))
+    : Math.round(dbServiceFeeAmount);
   const grandTotal = baseTotal + serviceFee;
   const totalGuests = adults + children;
 
@@ -94,7 +96,7 @@ export default function BookingCard({ property }) {
     }
     setSubmitting(true);
     try {
-      await api.post("/inquiries", {
+      await api.post("/inquiries/", {
         property_id: property.id,
         message: `Booking request. Check-in: ${checkIn || "flexible"}. Check-out: ${checkOut || "flexible"}. Guests: ${totalGuests}.`,
       });
@@ -137,11 +139,8 @@ export default function BookingCard({ property }) {
 
         {/* ── Price row ── */}
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className="text-gray-400 line-through text-base">
-            GH₵ {originalPrice.toLocaleString()}
-          </span>
           <span className="text-2xl font-bold text-gray-900">
-            GH₵ {price.toLocaleString()}
+            {currencyLabel} {price.toLocaleString()}
           </span>
           {isRent && (
             <span className="text-gray-500 text-sm">
@@ -273,23 +272,25 @@ export default function BookingCard({ property }) {
             {isRent && nights > 0 ? (
               <div className="flex justify-between text-gray-700">
                 <span className="underline decoration-dotted cursor-default">
-                  GH₵ {price.toLocaleString()} × {nights} night{nights !== 1 ? "s" : ""}
+                  {currencyLabel} {price.toLocaleString()} × {nights} night{nights !== 1 ? "s" : ""}
                 </span>
-                <span>GH₵ {(price * nights).toLocaleString()}</span>
+                <span>{currencyLabel} {(price * nights).toLocaleString()}</span>
               </div>
             ) : !isRent ? (
               <div className="flex justify-between text-gray-700">
                 <span className="underline decoration-dotted cursor-default">Property price</span>
-                <span>GH₵ {price.toLocaleString()}</span>
+                <span>{currencyLabel} {price.toLocaleString()}</span>
               </div>
             ) : null}
             <div className="flex justify-between text-gray-500">
-              <span className="underline decoration-dotted cursor-default">Service fee</span>
-              <span>GH₵ {serviceFee.toLocaleString()}</span>
+              <span className="underline decoration-dotted cursor-default">
+                Service fee{dbServiceFeeRate > 0 ? ` (${dbServiceFeeRate}%)` : ""}
+              </span>
+              <span>{currencyLabel} {serviceFee.toLocaleString()}</span>
             </div>
             <div className="flex justify-between font-bold text-gray-900 text-base pt-3 border-t border-gray-100">
               <span>Total</span>
-              <span>GH₵ {grandTotal.toLocaleString()}</span>
+              <span>{currencyLabel} {grandTotal.toLocaleString()}</span>
             </div>
           </div>
         )}

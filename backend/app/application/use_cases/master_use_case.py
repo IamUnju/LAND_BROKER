@@ -1,10 +1,10 @@
 from fastapi import HTTPException, status
 from app.domain.repositories.i_master_repositories import (
     IRoleRepository, IPropertyTypeRepository, IListingTypeRepository,
-    IRegionRepository, IDistrictRepository, ICurrencyRepository,
+    IRegionRepository, IDistrictRepository, ICurrencyRepository, IRoomTypeRepository,
 )
 from app.domain.entities.role import Role
-from app.domain.entities.property_type import PropertyType, ListingType
+from app.domain.entities.property_type import PropertyType, ListingType, RoomType
 from app.domain.entities.location import Region, District
 from app.domain.entities.currency import Currency
 from app.application.dto.master_dto import (
@@ -14,6 +14,7 @@ from app.application.dto.master_dto import (
     RegionCreateDTO, RegionUpdateDTO,
     DistrictCreateDTO, DistrictUpdateDTO,
     CurrencyCreateDTO, CurrencyUpdateDTO,
+    RoomTypeCreateDTO, RoomTypeUpdateDTO,
 )
 
 
@@ -26,6 +27,7 @@ class MasterUseCase:
         region_repo: IRegionRepository,
         district_repo: IDistrictRepository,
         currency_repo: ICurrencyRepository,
+        room_type_repo: IRoomTypeRepository,
     ):
         self._role_repo = role_repo
         self._property_type_repo = property_type_repo
@@ -33,6 +35,7 @@ class MasterUseCase:
         self._region_repo = region_repo
         self._district_repo = district_repo
         self._currency_repo = currency_repo
+        self._room_type_repo = room_type_repo
 
     # ── Roles ──────────────────────────────────────────────────────────────
     async def create_role(self, dto: RoleCreateDTO) -> Role:
@@ -207,3 +210,29 @@ class MasterUseCase:
     async def delete_currency(self, currency_id: int) -> bool:
         await self.get_currency(currency_id)
         return await self._currency_repo.delete(currency_id)
+
+    # ── RoomTypes ───────────────────────────────────────────────────────────
+    async def create_room_type(self, dto: RoomTypeCreateDTO) -> RoomType:
+        room_type = RoomType(name=dto.name, description=dto.description)
+        return await self._room_type_repo.create(room_type)
+
+    async def get_room_type(self, type_id: int) -> RoomType:
+        room_type = await self._room_type_repo.get_by_id(type_id)
+        if not room_type:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room type not found")
+        return room_type
+
+    async def list_room_types(self):
+        return await self._room_type_repo.get_all()
+
+    async def update_room_type(self, type_id: int, dto: RoomTypeUpdateDTO) -> RoomType:
+        room_type = await self.get_room_type(type_id)
+        if dto.name:
+            room_type.name = dto.name
+        if dto.description is not None:
+            room_type.description = dto.description
+        return await self._room_type_repo.update(room_type)
+
+    async def delete_room_type(self, type_id: int) -> bool:
+        await self.get_room_type(type_id)
+        return await self._room_type_repo.delete(type_id)

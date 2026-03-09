@@ -77,6 +77,18 @@ class PropertyRepository(IPropertyRepository):
             currency_name = None
             currency_code = None
             currency_symbol = None
+        try:
+            latest_commission = max(
+                (model.commissions or []),
+                key=lambda c: (
+                    c.created_at.timestamp() if c.created_at else 0,
+                    c.id or 0,
+                ),
+            )
+            service_fee_rate = Decimal(str(latest_commission.commission_rate))
+        except Exception:
+            service_fee_rate = Decimal("0.00")
+        service_fee_amount = (Decimal(str(model.price)) * service_fee_rate / Decimal("100")).quantize(Decimal("0.01"))
         # Safely read rich relationship data (images/amenities/reviews may not be loaded)
         try:
             images = [
@@ -140,6 +152,7 @@ class PropertyRepository(IPropertyRepository):
             latitude=Decimal(str(model.latitude)) if model.latitude else None,
             longitude=Decimal(str(model.longitude)) if model.longitude else None,
             broker_id=model.broker_id,
+            room_type=model.room_type,
             created_at=model.created_at,
             updated_at=model.updated_at,
             property_type_name=pt_name,
@@ -149,6 +162,8 @@ class PropertyRepository(IPropertyRepository):
             currency_name=currency_name,
             currency_code=currency_code,
             currency_symbol=currency_symbol,
+            service_fee_rate=service_fee_rate,
+            service_fee_amount=service_fee_amount,
             images=images,
             amenities=amenities,
             reviews=reviews_data,
@@ -216,6 +231,7 @@ class PropertyRepository(IPropertyRepository):
             latitude=prop.latitude,
             longitude=prop.longitude,
             broker_id=prop.broker_id,
+            room_type=prop.room_type,
         )
         for idx, image in enumerate(prop.images or []):
             url = (image.get("url") or "").strip() if isinstance(image, dict) else str(image).strip()
@@ -245,6 +261,7 @@ class PropertyRepository(IPropertyRepository):
                 selectinload(PropertyModel.listing_type),
                 selectinload(PropertyModel.district).selectinload(DistrictModel.region),
                 selectinload(PropertyModel.currency),
+                selectinload(PropertyModel.commissions),
                 selectinload(PropertyModel.images),
                 selectinload(PropertyModel.amenities),
                 selectinload(PropertyModel.reviews),
@@ -262,6 +279,7 @@ class PropertyRepository(IPropertyRepository):
             selectinload(PropertyModel.listing_type),
             selectinload(PropertyModel.district).selectinload(DistrictModel.region),
             selectinload(PropertyModel.currency),
+            selectinload(PropertyModel.commissions),
             selectinload(PropertyModel.images),
             selectinload(PropertyModel.amenities),
             selectinload(PropertyModel.owner),
@@ -285,6 +303,7 @@ class PropertyRepository(IPropertyRepository):
             selectinload(PropertyModel.listing_type),
             selectinload(PropertyModel.district).selectinload(DistrictModel.region),
             selectinload(PropertyModel.currency),
+            selectinload(PropertyModel.commissions),
             selectinload(PropertyModel.owner),
             selectinload(PropertyModel.broker),
             selectinload(PropertyModel.images),
@@ -297,13 +316,27 @@ class PropertyRepository(IPropertyRepository):
         return [self._to_entity(m) for m in result.scalars().all()]
 
     async def update(self, prop: Property) -> Property:
-        result = await self._session.execute(select(PropertyModel).where(PropertyModel.id == prop.id))
+        result = await self._session.execute(
+            select(PropertyModel)
+            .options(
+                selectinload(PropertyModel.images),
+                selectinload(PropertyModel.amenities),
+                selectinload(PropertyModel.property_type),
+                selectinload(PropertyModel.listing_type),
+                selectinload(PropertyModel.district).selectinload(DistrictModel.region),
+                selectinload(PropertyModel.currency),
+                selectinload(PropertyModel.owner),
+                selectinload(PropertyModel.broker),
+                selectinload(PropertyModel.commissions),
+            )
+            .where(PropertyModel.id == prop.id)
+        )
         model = result.scalar_one_or_none()
         if not model:
             raise ValueError(f"Property {prop.id} not found")
         for field in ["title", "property_type_id", "listing_type_id", "district_id", "currency_id", "price",
                       "bedrooms", "bathrooms", "area_sqm", "address", "description",
-                      "is_furnished", "is_published", "latitude", "longitude", "broker_id"]:
+                      "is_furnished", "is_published", "latitude", "longitude", "broker_id", "room_type"]:
             setattr(model, field, getattr(prop, field))
 
         if prop.images is not None:

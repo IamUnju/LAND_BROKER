@@ -9,7 +9,7 @@ from app.domain.entities.user import User
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.post("/", response_model=UserResponseDTO, status_code=201)
+@router.post("", response_model=UserResponseDTO, status_code=201)
 async def admin_create_user(
     dto: AdminUserCreateDTO,
     _: User = Depends(require_roles("ADMIN")),
@@ -41,7 +41,7 @@ async def list_owners(
     return await use_case.list_by_role("OWNER", skip=skip, limit=limit)
 
 
-@router.get("/", response_model=UserListDTO)
+@router.get("", response_model=UserListDTO)
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),

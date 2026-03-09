@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../../infrastructure/api";
 import Badge from "../../components/Badge";
 import toast from "react-hot-toast";
@@ -12,6 +13,7 @@ function emptyForm() {
     title: "", description: "", address: "", price: "", bedrooms: "", bathrooms: "",
     is_furnished: false, property_type_id: "", listing_type_id: "", district_id: "",
     currency_id: "", broker_id: "", is_published: true, image_paths: "", amenities_text: "",
+    room_type: "",
   };
 }
 
@@ -30,11 +32,14 @@ function parseAmenities(value) {
 }
 
 export default function PropertiesPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const formRef = useRef(null);
   const [items, setItems] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [propTypes, setPropTypes] = useState([]);
   const [listTypes, setListTypes] = useState([]);
   const [currencies, setCurrencies] = useState([]);
+  const [roomTypes, setRoomTypes] = useState([]);
   const [brokers, setBrokers] = useState([]);
   const [formMode, setFormMode] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
@@ -46,6 +51,16 @@ export default function PropertiesPage() {
   const existingImagePaths = parseImagePaths(form.image_paths);
   const totalImageCount = existingImagePaths.length + selectedFiles.length;
   const isImageCountValid = totalImageCount >= MIN_IMAGES && totalImageCount <= MAX_IMAGES;
+
+  const scrollToForm = () => {
+    requestAnimationFrame(() => {
+      if (formRef.current) {
+        formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  };
 
   useEffect(() => {
     const urls = selectedFiles.map((file) => URL.createObjectURL(file));
@@ -66,12 +81,14 @@ export default function PropertiesPage() {
       api.get("/master/property-types"),
       api.get("/master/listing-types"),
       api.get("/master/currencies"),
+      api.get("/master/room-types"),
       api.get("/users/brokers").catch(() => ({ data: { users: [] } })),
-    ]).then(([d, pt, lt, cu, br]) => {
+    ]).then(([d, pt, lt, cu, rt, br]) => {
       setDistricts(d.data);
       setPropTypes(pt.data);
       setListTypes(lt.data);
       setCurrencies(cu.data);
+      setRoomTypes(rt.data);
       setBrokers(br.data?.users ?? []);
     });
     load();
@@ -82,16 +99,20 @@ export default function PropertiesPage() {
     setEditingItem(null);
     setForm(emptyForm());
     setSelectedFiles([]);
+    setSearchParams({});
   };
 
   const openCreate = () => {
+    setSearchParams({ mode: "create" });
     setForm((f) => ({ ...emptyForm(), currency_id: String(currencies[0]?.id ?? "") }));
     setEditingItem(null);
     setFormMode("create");
     setSelectedFiles([]);
+    scrollToForm();
   };
 
   const openEdit = (p) => {
+    setSearchParams({ mode: "edit", id: String(p.id) });
     setForm({
       title: p.title, description: p.description ?? "", address: p.address,
       price: p.price ?? "", bedrooms: p.bedrooms ?? "", bathrooms: p.bathrooms ?? "",
@@ -101,16 +122,80 @@ export default function PropertiesPage() {
       broker_id: p.broker_id ?? "", is_published: p.is_published ?? true,
       image_paths: (p.images ?? []).map((img) => img.url).filter(Boolean).join("\n"),
       amenities_text: (p.amenities ?? []).map((a) => a.name).filter(Boolean).join("\n"),
+      room_type: p.room_type ?? "",
     });
     setEditingItem(p);
     setFormMode("edit");
     setSelectedFiles([]);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToForm();
   };
+
+  useEffect(() => {
+    const mode = searchParams.get("mode");
+    const id = Number(searchParams.get("id"));
+
+    if (mode === "create") {
+      if (formMode !== "create") {
+        setForm((f) => ({ ...emptyForm(), currency_id: String(currencies[0]?.id ?? "") }));
+        setEditingItem(null);
+        setFormMode("create");
+        setSelectedFiles([]);
+      }
+      scrollToForm();
+      return;
+    }
+
+    if (mode === "edit" && id) {
+      const p = items.find((item) => item.id === id);
+      if (p && editingItem?.id !== p.id) {
+        setForm({
+          title: p.title, description: p.description ?? "", address: p.address,
+          price: p.price ?? "", bedrooms: p.bedrooms ?? "", bathrooms: p.bathrooms ?? "",
+          is_furnished: p.is_furnished ?? false, property_type_id: p.property_type_id,
+          listing_type_id: p.listing_type_id, district_id: p.district_id ?? "",
+          currency_id: p.currency_id ? String(p.currency_id) : "",
+          broker_id: p.broker_id ?? "", is_published: p.is_published ?? true,
+          image_paths: (p.images ?? []).map((img) => img.url).filter(Boolean).join("\n"),
+          amenities_text: (p.amenities ?? []).map((a) => a.name).filter(Boolean).join("\n"),
+          room_type: p.room_type ?? "",
+        });
+        setEditingItem(p);
+        setFormMode("edit");
+        setSelectedFiles([]);
+      }
+      scrollToForm();
+      return;
+    }
+
+    if (formMode) {
+      setFormMode(null);
+      setEditingItem(null);
+      setForm(emptyForm());
+      setSelectedFiles([]);
+    }
+  }, [searchParams, items, currencies, formMode, editingItem]);
+
+  useEffect(() => {
+    if (formMode && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [formMode]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+    const newValue = type === "checkbox" ? checked : value;
+    setForm((f) => {
+      const updated = { ...f, [name]: newValue };
+      // Reset cascading fields when parent changes
+      if (name === "property_type_id") {
+        updated.listing_type_id = "";
+        updated.room_type = "";
+      }
+      if (name === "listing_type_id") {
+        updated.room_type = "";
+      }
+      return updated;
+    });
   };
 
   const handleFileChange = (e) => {
@@ -167,7 +252,7 @@ export default function PropertiesPage() {
         return;
       }
 
-      if (formMode === "create") await api.post("/properties/", payload);
+      if (formMode === "create") await api.post("/properties", payload);
       else await api.put(`/properties/${editingItem.id}`, payload);
       toast.success("Saved!");
       closeForm();
@@ -201,7 +286,7 @@ export default function PropertiesPage() {
       </div>
 
       {formMode && (
-        <div className="card p-5 space-y-4">
+        <div ref={formRef} className="card p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-800">
               {formMode === "create" ? "Add Property" : "Edit Property"}
@@ -218,7 +303,23 @@ export default function PropertiesPage() {
             <div><label className="label">Bathrooms</label><input name="bathrooms" type="number" className="input" value={form.bathrooms} onChange={handleChange} /></div>
             <div className="flex items-center gap-2 mt-6"><input name="is_furnished" type="checkbox" checked={form.is_furnished} onChange={handleChange} className="h-4 w-4" /><label className="text-sm">Furnished</label></div>
             <div><label className="label">Property Type</label><select name="property_type_id" className="input" value={form.property_type_id} onChange={handleChange}><option value="">Select…</option>{propTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-            <div><label className="label">Listing Type</label><select name="listing_type_id" className="input" value={form.listing_type_id} onChange={handleChange}><option value="">Select…</option>{listTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+            {form.property_type_id && propTypes.find(t => t.id == form.property_type_id)?.name === "House" && (
+              <div><label className="label">Listing Type</label><select name="listing_type_id" className="input" value={form.listing_type_id} onChange={handleChange}><option value="">Select…</option>{listTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+            )}
+            {form.property_type_id && propTypes.find(t => t.id == form.property_type_id)?.name !== "House" && (
+              <div><label className="label">Listing Type</label><select name="listing_type_id" className="input" value={form.listing_type_id} onChange={handleChange}><option value="">Select…</option>{listTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+            )}
+            {form.property_type_id && propTypes.find(t => t.id == form.property_type_id)?.name === "House" && form.listing_type_id && listTypes.find(t => t.id == form.listing_type_id)?.name === "FOR_RENT" && (
+              <div>
+                <label className="label">Room Type</label>
+                <select name="room_type" className="input" value={form.room_type} onChange={handleChange}>
+                  <option value="">Select…</option>
+                  {roomTypes.map((rt) => (
+                    <option key={rt.id} value={rt.name}>{rt.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div><label className="label">Currency</label><select name="currency_id" className="input" value={form.currency_id} onChange={handleChange}><option value="">Select…</option>{currencies.map((c) => <option key={c.id} value={c.id}>{c.code} ({c.symbol})</option>)}</select></div>
             <div><label className="label">District</label><select name="district_id" className="input" value={form.district_id} onChange={handleChange}><option value="">Select…</option>{districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
             <div>

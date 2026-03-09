@@ -126,8 +126,28 @@ class CurrencyResponseDTO(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class RoomTypeCreateDTO(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    description: Optional[str] = None
+
+
+class RoomTypeUpdateDTO(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = None
+
+
+class RoomTypeResponseDTO(BaseModel):
+    id: int
+    name: str
+    description: Optional[str]
+    created_at: Optional[datetime]
+
+    model_config = {"from_attributes": True}
+
+
 class StatsDTO(BaseModel):
     total_users: int
+    active_users: int = 0
     total_properties: int
     total_units: int = 0
     total_tenants: int

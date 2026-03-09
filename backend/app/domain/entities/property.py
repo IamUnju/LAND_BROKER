@@ -23,6 +23,7 @@ class Property:
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
     broker_id: Optional[int] = None
+    room_type: Optional[str] = None
     id: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -34,6 +35,8 @@ class Property:
     currency_name: Optional[str] = None
     currency_code: Optional[str] = None
     currency_symbol: Optional[str] = None
+    service_fee_rate: Decimal = Decimal("0.00")
+    service_fee_amount: Decimal = Decimal("0.00")
     # Rich detail fields
     images: List = field(default_factory=list)
     amenities: List = field(default_factory=list)

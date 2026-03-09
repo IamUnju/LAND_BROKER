@@ -85,6 +85,16 @@ class CurrencyModel(Base):
     properties = relationship("PropertyModel", back_populates="currency")
 
 
+class RoomTypeModel(Base):
+    __tablename__ = "room_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 class RegionModel(Base):
     __tablename__ = "regions"
 
@@ -132,6 +142,7 @@ class PropertyModel(Base):
     latitude = Column(Numeric(10, 8), nullable=True)
     longitude = Column(Numeric(11, 8), nullable=True)
     broker_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    room_type = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

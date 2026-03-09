@@ -12,10 +12,10 @@ export default function LeasesPage() {
   const [form, setForm] = useState({ unit_id: "", tenant_id: "", start_date: "", end_date: "", monthly_rent: "", security_deposit: "" });
   const [loading, setLoading] = useState(true);
 
-  const load = () => api.get("/leases").then(({ data }) => { setLeases(data); setLoading(false); });
+  const load = () => api.get("/leases/").then(({ data }) => { setLeases(data); setLoading(false); });
 
   useEffect(() => {
-    Promise.all([api.get("/units/"), api.get("/tenants")]).then(([u, t]) => { setUnits(u.data); setTenants(t.data); });
+    Promise.all([api.get("/units/"), api.get("/tenants/")]).then(([u, t]) => { setUnits(u.data); setTenants(t.data); });
     load();
   }, []);
 
@@ -23,7 +23,7 @@ export default function LeasesPage() {
 
   const save = async () => {
     const payload = { ...form, unit_id: Number(form.unit_id), tenant_id: Number(form.tenant_id), monthly_rent: Number(form.monthly_rent), security_deposit: form.security_deposit ? Number(form.security_deposit) : null };
-    try { await api.post("/leases", payload); toast.success("Lease created!"); setShowCreateForm(false); setForm({ unit_id: "", tenant_id: "", start_date: "", end_date: "", monthly_rent: "", security_deposit: "" }); load(); }
+    try { await api.post("/leases/", payload); toast.success("Lease created!"); setShowCreateForm(false); setForm({ unit_id: "", tenant_id: "", start_date: "", end_date: "", monthly_rent: "", security_deposit: "" }); load(); }
     catch (e) { toast.error(e.response?.data?.detail || "Error"); }
   };
 

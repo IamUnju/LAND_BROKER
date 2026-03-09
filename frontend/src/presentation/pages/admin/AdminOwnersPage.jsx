@@ -20,7 +20,7 @@ export default function AdminOwnersPage() {
     setSelected(owner);
     setProperties([]);
     setLoadingProps(true);
-    api.get(`/properties/?owner_id=${owner.id}&limit=100`)
+    api.get(`/properties?owner_id=${owner.id}&limit=100`)
       .then(({ data }) => { setProperties(data?.properties ?? []); setLoadingProps(false); })
       .catch(() => setLoadingProps(false));
   };

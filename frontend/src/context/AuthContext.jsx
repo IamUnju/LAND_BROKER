@@ -4,6 +4,28 @@ import api from "../infrastructure/api";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const fetchMeWithRetry = async (attempts = 3) => {
+      let lastError;
+      for (let i = 0; i < attempts; i += 1) {
+        try {
+          const { data } = await api.get("/auth/me");
+          return data;
+        } catch (error) {
+          lastError = error;
+          const status = error?.response?.status;
+          // Authorization failures should not be retried.
+          if (status === 401 || status === 403) throw error;
+          // Retry transient network/server issues.
+          if (i < attempts - 1) {
+            await wait(300 * (i + 1));
+          }
+        }
+      }
+      throw lastError;
+    };
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -19,10 +41,14 @@ export function AuthProvider({ children }) {
 
   const fetchMe = async () => {
     try {
-      const { data } = await api.get("/auth/me");
-      setUser(data);
-    } catch {
-      logout();
+      const me = await fetchMeWithRetry();
+      setUser(me);
+    } catch (error) {
+      const status = error?.response?.status;
+      // Only clear session for actual auth failures.
+      if (status === 401 || status === 403) {
+        logout();
+      }
     }
   };
 
@@ -30,7 +56,7 @@ export function AuthProvider({ children }) {
     const { data } = await api.post("/auth/login", { email, password });
     localStorage.setItem("access_token", data.access_token);
     localStorage.setItem("refresh_token", data.refresh_token);
-    const { data: userData } = await api.get("/auth/me");
+    const userData = await fetchMeWithRetry();
     setUser(userData);
     return userData;
   }, []);
@@ -43,7 +69,7 @@ export function AuthProvider({ children }) {
     const { data } = await api.post("/auth/google", { token: accessToken });
     localStorage.setItem("access_token", data.access_token);
     localStorage.setItem("refresh_token", data.refresh_token);
-    const { data: userData } = await api.get("/auth/me");
+    const userData = await fetchMeWithRetry();
     setUser(userData);
     return userData;
   }, []);
