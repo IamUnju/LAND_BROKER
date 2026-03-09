@@ -151,6 +151,7 @@ class PropertyFilterDTO(BaseModel):
     region_id: Optional[int] = None
     property_type_id: Optional[int] = None
     listing_type_id: Optional[int] = None
+    include_room_types: bool = False
     min_price: Optional[Decimal] = None
     max_price: Optional[Decimal] = None
     bedrooms: Optional[int] = None

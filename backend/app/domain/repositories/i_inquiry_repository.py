@@ -22,6 +22,14 @@ class IInquiryRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_by_owner(self, owner_id: int) -> List[Inquiry]:
+        pass
+
+    @abstractmethod
+    async def get_by_broker(self, broker_id: int) -> List[Inquiry]:
+        pass
+
+    @abstractmethod
     async def update(self, inquiry: Inquiry) -> Inquiry:
         pass
 

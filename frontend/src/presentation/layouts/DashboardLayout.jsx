@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import Tooltip from "../components/Tooltip";
 import {
   HiOutlineHome,
   HiOutlineUsers,
@@ -35,6 +36,7 @@ const navConfig = {
   OWNER: [
     { to: "/owner", icon: HiOutlineChartBar, label: "Dashboard", end: true },
     { to: "/owner/properties", icon: HiOutlineOfficeBuilding, label: "Properties" },
+    { to: "/owner/inquiries", icon: HiOutlineChatAlt2, label: "Inquiries" },
     { to: "/owner/units", icon: HiOutlineKey, label: "Units" },
     { to: "/owner/leases", icon: HiOutlineDocumentText, label: "Leases" },
     { to: "/owner/payments", icon: HiOutlineCurrencyDollar, label: "Payments" },
@@ -51,21 +53,10 @@ const navConfig = {
   BROKER: [
     { to: "/broker", icon: HiOutlineBriefcase, label: "Dashboard", end: true },
     { to: "/broker/properties", icon: HiOutlineOfficeBuilding, label: "Properties" },
+    { to: "/broker/inquiries", icon: HiOutlineChatAlt2, label: "Inquiries" },
     { to: "/broker/commissions", icon: HiOutlineCurrencyDollar, label: "Commissions" },
   ],
 };
-
-function Tooltip({ text, children }) {
-  return (
-    <div className="group relative inline-flex">
-      {children}
-      <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-        {text}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-      </div>
-    </div>
-  );
-}
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();

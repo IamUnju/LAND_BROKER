@@ -24,6 +24,7 @@ import UnitsPage from "./presentation/pages/owner/UnitsPage";
 import LeasesPage from "./presentation/pages/owner/LeasesPage";
 import PaymentsPage from "./presentation/pages/owner/PaymentsPage";
 import MaintenancePage from "./presentation/pages/owner/MaintenancePage";
+import OwnerInquiriesPage from "./presentation/pages/owner/OwnerInquiriesPage";
 
 // Tenant
 import TenantDashboard from "./presentation/pages/tenant/TenantDashboard";
@@ -37,6 +38,7 @@ import TenantInquiriesPage from "./presentation/pages/tenant/TenantInquiriesPage
 import BrokerDashboard from "./presentation/pages/broker/BrokerDashboard";
 import CommissionsPage from "./presentation/pages/broker/CommissionsPage";
 import BrokerPropertiesPage from "./presentation/pages/broker/BrokerPropertiesPage";
+import BrokerInquiriesPage from "./presentation/pages/broker/BrokerInquiriesPage";
 
 function RoleRedirect() {
   const { user } = useAuth();
@@ -78,6 +80,7 @@ export default function App() {
       <Route path="/owner" element={<ProtectedRoute roles={["OWNER"]}><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<OwnerDashboard />} />
         <Route path="properties" element={<PropertiesPage />} />
+        <Route path="inquiries" element={<OwnerInquiriesPage />} />
         <Route path="units" element={<UnitsPage />} />
         <Route path="leases" element={<LeasesPage />} />
         <Route path="payments" element={<PaymentsPage />} />
@@ -98,6 +101,7 @@ export default function App() {
       <Route path="/broker" element={<ProtectedRoute roles={["BROKER"]}><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<BrokerDashboard />} />
         <Route path="properties" element={<BrokerPropertiesPage />} />
+        <Route path="inquiries" element={<BrokerInquiriesPage />} />
         <Route path="commissions" element={<CommissionsPage />} />
       </Route>
 

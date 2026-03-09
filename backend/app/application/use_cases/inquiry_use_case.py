@@ -32,21 +32,44 @@ class InquiryUseCase:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inquiry not found")
         return inquiry
 
-    async def respond_to_inquiry(self, inquiry_id: int, dto: InquiryRespondDTO, owner_id: int, is_admin: bool = False) -> Inquiry:
+    async def respond_to_inquiry(
+        self,
+        inquiry_id: int,
+        dto: InquiryRespondDTO,
+        actor_user_id: int,
+        actor_role: str,
+        is_admin: bool = False,
+    ) -> Inquiry:
         inquiry = await self.get_inquiry(inquiry_id)
         prop = await self._property_repo.get_by_id(inquiry.property_id)
-        if not is_admin and prop.owner_id != owner_id:
+        role = (actor_role or "").upper()
+        is_owner = prop.owner_id == actor_user_id
+        is_broker = prop.broker_id == actor_user_id
+        if not is_admin and role != "ADMIN" and not is_owner and not is_broker:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
         inquiry.respond(dto.response)
         return await self._repo.update(inquiry)
 
-    async def get_property_inquiries(self, property_id: int, owner_id: int, is_admin: bool = False):
+    async def get_property_inquiries(self, property_id: int, actor_user_id: int, actor_role: str, is_admin: bool = False):
         prop = await self._property_repo.get_by_id(property_id)
         if not prop:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found")
-        if not is_admin and prop.owner_id != owner_id:
+        role = (actor_role or "").upper()
+        is_owner = prop.owner_id == actor_user_id
+        is_broker = prop.broker_id == actor_user_id
+        if not is_admin and role != "ADMIN" and not is_owner and not is_broker:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
         return await self._repo.get_by_property(property_id)
+
+    async def get_assigned_inquiries(self, actor_user_id: int, actor_role: str):
+        role = (actor_role or "").upper()
+        if role == "ADMIN":
+            return await self._repo.get_all(skip=0, limit=500)
+        if role == "OWNER":
+            return await self._repo.get_by_owner(actor_user_id)
+        if role == "BROKER":
+            return await self._repo.get_by_broker(actor_user_id)
+        return []
 
     async def get_user_inquiries(self, user_id: int):
         return await self._repo.get_by_user(user_id)

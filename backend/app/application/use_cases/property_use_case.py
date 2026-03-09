@@ -89,6 +89,8 @@ class PropertyUseCase:
             filter_dict["property_type_id"] = filters.property_type_id
         if filters.listing_type_id:
             filter_dict["listing_type_id"] = filters.listing_type_id
+        if filters.include_room_types:
+            filter_dict["include_room_types"] = True
         if filters.min_price is not None:
             filter_dict["min_price"] = filters.min_price
         if filters.max_price is not None:
@@ -116,6 +118,8 @@ class PropertyUseCase:
             filter_dict["property_type_id"] = filters.property_type_id
         if filters.listing_type_id:
             filter_dict["listing_type_id"] = filters.listing_type_id
+        if filters.include_room_types:
+            filter_dict["include_room_types"] = True
         if filters.min_price is not None:
             filter_dict["min_price"] = filters.min_price
         if filters.max_price is not None:

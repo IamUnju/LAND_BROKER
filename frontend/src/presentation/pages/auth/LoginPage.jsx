@@ -100,7 +100,7 @@ export default function LoginPage() {
           <form onSubmit={submit} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-[#1f2742] mb-2">Email</label>
-              <input name="email" type="email" required className="block w-full rounded-xl border border-[#d7dde7] bg-white px-4 py-2.5 text-sm shadow-sm placeholder-[#94a3b8] focus:border-[#0b6f26] focus:outline-none focus:ring-2 focus:ring-[#0b6f26]/20" placeholder="you@example.com" value={form.email} onChange={handle} />
+              <input name="email" type="email" required className="block w-full rounded-xl border border-[#d7dde7] bg-white px-4 py-2.5 text-sm shadow-sm placeholder-[#94a3b8] focus:border-[#0b6f26] focus:outline-none focus:ring-2 focus:ring-[#0b6f26]/20" placeholder="example@example.com" value={form.email} onChange={handle} />
             </div>
             <div>
               <label className="block text-sm font-semibold text-[#1f2742] mb-2">Password</label>

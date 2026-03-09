@@ -6,6 +6,7 @@ export default function StatCard({ title, value, icon: Icon, color = "primary" }
     yellow: "bg-yellow-50 text-yellow-700",
     red: "bg-red-50 text-red-700",
     purple: "bg-purple-50 text-purple-700",
+    rose: "bg-rose-50 text-rose-700",
   };
   return (
     <div className="card flex items-center gap-4">

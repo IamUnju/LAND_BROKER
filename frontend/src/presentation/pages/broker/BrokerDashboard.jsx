@@ -2,26 +2,34 @@ import { useState, useEffect } from "react";
 import api from "../../../infrastructure/api";
 import StatCard from "../../components/StatCard";
 import MiniMetricChart from "../../components/dashboard/MiniMetricChart";
-import { HiOutlineCurrencyDollar, HiOutlineCheck, HiOutlineClock, HiOutlineOfficeBuilding } from "react-icons/hi";
+import { HiOutlineCurrencyDollar, HiOutlineCheck, HiOutlineClock, HiOutlineOfficeBuilding, HiOutlineChatAlt2 } from "react-icons/hi";
 import { useAuth } from "../../../context/AuthContext";
 
 export default function BrokerDashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState({ total: 0, paid: 0, unpaid: 0 });
+  const [stats, setStats] = useState({ total: 0, paid: 0, unpaid: 0, pendingInquiries: 0 });
   const [propCount, setPropCount] = useState(0);
 
   useEffect(() => {
     if (!user?.id) return;
     api.get(`/commissions/broker/${user.id}`).then(({ data }) => {
       const items = Array.isArray(data) ? data : [];
-      setStats({
+      setStats((prev) => ({
+        ...prev,
         total: items.length,
         paid: items.filter((c) => c.status === "PAID").length,
         unpaid: items.filter((c) => c.status === "UNPAID").length,
-      });
+      }));
     }).catch(() => {});
     api.get("/properties/my").then(({ data }) => {
       setPropCount(data?.total ?? data?.properties?.length ?? 0);
+    }).catch(() => {});
+    api.get("/inquiries/assigned").then(({ data }) => {
+      const inquiries = Array.isArray(data) ? data : [];
+      setStats((prev) => ({
+        ...prev,
+        pendingInquiries: inquiries.filter((i) => i.status === "PENDING").length,
+      }));
     }).catch(() => {});
   }, [user?.id]);
 
@@ -40,6 +48,7 @@ export default function BrokerDashboard() {
         <StatCard title="Total Commissions" value={stats.total} icon={HiOutlineCurrencyDollar} color="primary" />
         <StatCard title="Paid" value={stats.paid} icon={HiOutlineCheck} color="green" />
         <StatCard title="Pending" value={stats.unpaid} icon={HiOutlineClock} color="yellow" />
+        <StatCard title="Pending Inquiries" value={stats.pendingInquiries} icon={HiOutlineChatAlt2} color="rose" />
       </div>
     </div>
   );

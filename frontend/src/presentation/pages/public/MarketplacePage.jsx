@@ -42,11 +42,16 @@ function PropertyCard({ p, index, favorited, onFavorite }) {
   const rating = getRating(p.id);
   const [imgError, setImgError] = useState(false);
   const currencyLabel = p.currency_symbol || p.currency_code || "GH₵";
+  const locationLabel = p.district_name ?? p.address ?? "Location unavailable";
+  const detailsLabel = `${p.bedrooms ?? 0} bed · ${p.bathrooms ?? 0} bath${p.is_furnished ? " · Furnished" : ""}`;
 
   return (
-    <Link to={`/marketplace/${p.id}`} className="group block cursor-pointer">
+    <Link
+      to={`/marketplace/${p.id}`}
+      className="group block cursor-pointer overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow duration-300 hover:shadow-md"
+    >
       {/* Image */}
-      <div className="relative overflow-hidden rounded-2xl aspect-[4/3] bg-gray-200">
+      <div className="relative overflow-hidden aspect-[4/3] bg-gray-200">
         {!imgError ? (
           <img
             src={primaryImage}
@@ -60,12 +65,12 @@ function PropertyCard({ p, index, favorited, onFavorite }) {
         {/* Favorite button */}
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFavorite(p.id); }}
-          className="absolute right-3 top-3 rounded-full p-1 transition-colors"
+          className="absolute right-3 top-3 rounded-full bg-white/90 p-1.5 shadow transition-colors"
         >
           {favorited ? (
-            <HiHeart className="h-6 w-6 text-rose-500 drop-shadow" />
+            <HiHeart className="h-5 w-5 text-rose-500" />
           ) : (
-            <HiOutlineHeart className="h-6 w-6 text-white drop-shadow-lg stroke-[1.5]" />
+            <HiOutlineHeart className="h-5 w-5 text-gray-700 stroke-[1.5]" />
           )}
         </button>
         {/* Guest favorite badge */}
@@ -77,26 +82,30 @@ function PropertyCard({ p, index, favorited, onFavorite }) {
       </div>
 
       {/* Info */}
-      <div className="mt-2">
+      <div className="space-y-1.5 p-3">
         <div className="flex items-start justify-between gap-2">
-          <p className="font-semibold text-gray-900 truncate">
-            {p.property_type_name ?? "Property"} in {p.district_name ?? p.address ?? "—"}
+          <p className="line-clamp-2 font-semibold text-gray-900">
+            {p.property_type_name ?? "Property"} in {locationLabel}
           </p>
-          <span className="flex shrink-0 items-center gap-0.5 text-sm font-medium text-gray-800">
+          <span className="mt-0.5 flex shrink-0 items-center gap-0.5 text-sm font-medium text-gray-800">
             <HiStar className="h-3.5 w-3.5 text-gray-800" />
             {rating.toFixed(2)}
           </span>
         </div>
-        <p className="text-sm text-gray-500 truncate">{p.bedrooms ?? 0} bed · {p.bathrooms ?? 0} bath{p.is_furnished ? " · Furnished" : ""}</p>
+
+        <p className="text-sm text-gray-500 truncate">{locationLabel}</p>
+        <p className="text-sm text-gray-500 truncate">{detailsLabel}</p>
+
         {p.room_type && (
-          <p className="mt-1 text-xs text-gray-500 truncate">Room type: {p.room_type}</p>
+          <p className="text-xs text-gray-500 truncate">Room type: {p.room_type}</p>
         )}
-        <p className="mt-1 text-sm text-gray-800">
+
+        <p className="border-t border-gray-100 pt-2 text-sm text-gray-800">
           <span className="font-semibold">{currencyLabel} {Number(p.price).toLocaleString()}</span>
           <span className="text-gray-500"> / {p.listing_type_name?.toLowerCase().includes("rent") ? "month" : "total"}</span>
         </p>
-        {/* Contact badge */}
-        <p className="mt-1 text-xs text-gray-500 truncate">
+
+        <p className="text-xs text-gray-500 truncate">
           {p.broker_name
             ? <span>🤝 Via broker: <span className="font-medium text-gray-700">{p.broker_name}</span></span>
             : <span>📞 Contact owner: <span className="font-medium text-gray-700">{p.host_name || "Owner"}</span></span>
@@ -140,6 +149,15 @@ export default function MarketplacePage() {
       const params = Object.fromEntries(
         Object.entries(filters).filter(([, v]) => v !== "" && v !== undefined)
       );
+
+      const selectedPropertyType = propertyTypes.find((t) => t.id === filters.property_type_id);
+      const selectedListingType = listingTypes.find((t) => t.id === filters.listing_type_id);
+      const propertyTypeName = (selectedPropertyType?.name || "").trim().toLowerCase();
+      const listingTypeName = (selectedListingType?.name || "").trim().toLowerCase().replace(/\s+/g, "_");
+      if (propertyTypeName === "house" && listingTypeName === "for_rent") {
+        params.include_room_types = true;
+      }
+
       const { data } = await api.get("/properties/public", { params });
       const items = data?.properties ?? [];
       setProperties(items);
@@ -339,6 +357,28 @@ export default function MarketplacePage() {
                       {n}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Price Range */}
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase text-gray-500 tracking-wide">Price Range</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min price"
+                    value={filters.min_price || ""}
+                    onChange={(e) => setFilters((f) => ({ ...f, min_price: e.target.value ? Number(e.target.value) : undefined, skip: 0 }))}
+                    className="w-32 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-800"
+                  />
+                  <span className="text-gray-400">–</span>
+                  <input
+                    type="number"
+                    placeholder="Max price"
+                    value={filters.max_price || ""}
+                    onChange={(e) => setFilters((f) => ({ ...f, max_price: e.target.value ? Number(e.target.value) : undefined, skip: 0 }))}
+                    className="w-32 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-800"
+                  />
                 </div>
               </div>
             </div>

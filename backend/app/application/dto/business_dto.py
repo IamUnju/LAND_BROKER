@@ -150,6 +150,16 @@ class InquiryRespondDTO(BaseModel):
     response: str = Field(min_length=1)
 
 
+class UserDetailDTO(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
 class InquiryResponseDTO(BaseModel):
     id: int
     property_id: int
@@ -159,6 +169,7 @@ class InquiryResponseDTO(BaseModel):
     response: Optional[str]
     responded_at: Optional[datetime]
     created_at: Optional[datetime]
+    user: Optional[UserDetailDTO] = None
 
     model_config = {"from_attributes": True}
 

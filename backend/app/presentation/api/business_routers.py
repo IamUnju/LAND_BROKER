@@ -353,7 +353,22 @@ async def property_inquiries(
     current_user: User = Depends(get_current_user),
     use_case: InquiryUseCase = Depends(get_inquiry_use_case),
 ):
-    return await use_case.get_property_inquiries(property_id, owner_id=current_user.id)
+    return await use_case.get_property_inquiries(
+        property_id,
+        actor_user_id=current_user.id,
+        actor_role=current_user.role_name,
+    )
+
+
+@inquiry_router.get("/assigned", response_model=List[InquiryResponseDTO])
+async def assigned_inquiries(
+    current_user: User = Depends(get_current_user),
+    use_case: InquiryUseCase = Depends(get_inquiry_use_case),
+):
+    return await use_case.get_assigned_inquiries(
+        actor_user_id=current_user.id,
+        actor_role=current_user.role_name,
+    )
 
 
 @inquiry_router.get("/", response_model=List[InquiryResponseDTO])
@@ -382,7 +397,12 @@ async def respond_to_inquiry(
     current_user: User = Depends(get_current_user),
     use_case: InquiryUseCase = Depends(get_inquiry_use_case),
 ):
-    return await use_case.respond_to_inquiry(inquiry_id, dto, owner_id=current_user.id)
+    return await use_case.respond_to_inquiry(
+        inquiry_id,
+        dto,
+        actor_user_id=current_user.id,
+        actor_role=current_user.role_name,
+    )
 
 
 @inquiry_router.delete("/{inquiry_id}", status_code=204)

@@ -1,9 +1,10 @@
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
+from sqlalchemy.orm import joinedload
 from app.domain.repositories.i_inquiry_repository import IInquiryRepository, IFavoriteRepository
 from app.domain.entities.inquiry import Inquiry, Favorite, InquiryStatus
-from app.infrastructure.db.models import InquiryModel, FavoriteModel
+from app.infrastructure.db.models import InquiryModel, FavoriteModel, PropertyModel
 
 
 class InquiryRepository(IInquiryRepository):
@@ -36,8 +37,12 @@ class InquiryRepository(IInquiryRepository):
         return self._to_entity(model)
 
     async def get_by_id(self, inquiry_id: int) -> Optional[Inquiry]:
-        result = await self._session.execute(select(InquiryModel).where(InquiryModel.id == inquiry_id))
-        model = result.scalar_one_or_none()
+        result = await self._session.execute(
+            select(InquiryModel)
+            .options(joinedload(InquiryModel.user))
+            .where(InquiryModel.id == inquiry_id)
+        )
+        model = result.scalars().unique().one_or_none()
         return self._to_entity(model) if model else None
 
     async def get_by_property(self, property_id: int) -> List[Inquiry]:
@@ -47,6 +52,26 @@ class InquiryRepository(IInquiryRepository):
     async def get_by_user(self, user_id: int) -> List[Inquiry]:
         result = await self._session.execute(select(InquiryModel).where(InquiryModel.user_id == user_id))
         return [self._to_entity(m) for m in result.scalars().all()]
+
+    async def get_by_owner(self, owner_id: int) -> List[Inquiry]:
+        result = await self._session.execute(
+            select(InquiryModel)
+            .options(joinedload(InquiryModel.user))
+            .join(PropertyModel, PropertyModel.id == InquiryModel.property_id)
+            .where(PropertyModel.owner_id == owner_id)
+            .order_by(InquiryModel.created_at.desc())
+        )
+        return [self._to_entity(m) for m in result.scalars().unique().all()]
+
+    async def get_by_broker(self, broker_id: int) -> List[Inquiry]:
+        result = await self._session.execute(
+            select(InquiryModel)
+            .options(joinedload(InquiryModel.user))
+            .join(PropertyModel, PropertyModel.id == InquiryModel.property_id)
+            .where(PropertyModel.broker_id == broker_id)
+            .order_by(InquiryModel.created_at.desc())
+        )
+        return [self._to_entity(m) for m in result.scalars().unique().all()]
 
     async def get_all(self, skip: int = 0, limit: int = 100) -> List[Inquiry]:
         result = await self._session.execute(

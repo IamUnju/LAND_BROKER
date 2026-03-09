@@ -188,7 +188,16 @@ class PropertyRepository(IPropertyRepository):
         if "district_id" in filters:
             conditions.append(PropertyModel.district_id == filters["district_id"])
         if "property_type_id" in filters:
-            conditions.append(PropertyModel.property_type_id == filters["property_type_id"])
+            include_room_types = bool(filters.get("include_room_types"))
+            if include_room_types:
+                conditions.append(
+                    or_(
+                        PropertyModel.property_type_id == filters["property_type_id"],
+                        and_(PropertyModel.room_type.isnot(None), PropertyModel.room_type != ""),
+                    )
+                )
+            else:
+                conditions.append(PropertyModel.property_type_id == filters["property_type_id"])
         if "listing_type_id" in filters:
             conditions.append(PropertyModel.listing_type_id == filters["listing_type_id"])
         if "min_price" in filters:

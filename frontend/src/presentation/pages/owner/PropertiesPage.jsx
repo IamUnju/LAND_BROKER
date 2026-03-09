@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../../infrastructure/api";
+import { useAuth } from "../../../context/AuthContext";
 import Badge from "../../components/Badge";
+import Tooltip from "../../components/Tooltip";
 import toast from "react-hot-toast";
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineEye, HiOutlineEyeOff } from "react-icons/hi";
 
@@ -32,6 +34,7 @@ function parseAmenities(value) {
 }
 
 export default function PropertiesPage() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const formRef = useRef(null);
   const [items, setItems] = useState([]);
@@ -72,7 +75,20 @@ export default function PropertiesPage() {
 
   const load = () => {
     setLoading(true);
-    api.get("/properties/my").then(({ data }) => { setItems(data?.properties ?? []); setLoading(false); });
+    const endpoint = user?.role_name === "ADMIN" ? "/properties" : "/properties/my";
+    api
+      .get(endpoint)
+      .then(({ data }) => {
+        const rows = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.properties)
+            ? data.properties
+            : Array.isArray(data?.items)
+              ? data.items
+              : [];
+        setItems(rows);
+      })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -92,7 +108,7 @@ export default function PropertiesPage() {
       setBrokers(br.data?.users ?? []);
     });
     load();
-  }, []);
+  }, [user?.role_name]);
 
   const closeForm = () => {
     setFormMode(null);
@@ -437,9 +453,15 @@ export default function PropertiesPage() {
                   <td className="px-4 py-3 text-sm text-gray-500">{p.broker_name || <span className="text-gray-300">None</span>}</td>
                   <td className="px-4 py-3"><Badge status={p.is_published ? "ACTIVE" : "INACTIVE"} /></td>
                   <td className="px-4 py-3 flex gap-2">
-                    <button onClick={() => openEdit(p)} className="btn-secondary py-1 px-2 text-xs"><HiOutlinePencil /></button>
-                    <button onClick={() => togglePublish(p)} className="btn-secondary py-1 px-2 text-xs">{p.is_published ? <HiOutlineEyeOff /> : <HiOutlineEye />}</button>
-                    <button onClick={() => del(p.id)} className="btn-danger py-1 px-2 text-xs"><HiOutlineTrash /></button>
+                    <Tooltip text="Edit property">
+                      <button onClick={() => openEdit(p)} className="btn-secondary py-1 px-2 text-xs"><HiOutlinePencil /></button>
+                    </Tooltip>
+                    <Tooltip text={p.is_published ? "Hide from marketplace" : "Show on marketplace"}>
+                      <button onClick={() => togglePublish(p)} className="btn-secondary py-1 px-2 text-xs">{p.is_published ? <HiOutlineEyeOff /> : <HiOutlineEye />}</button>
+                    </Tooltip>
+                    <Tooltip text="Delete property">
+                      <button onClick={() => del(p.id)} className="btn-danger py-1 px-2 text-xs"><HiOutlineTrash /></button>
+                    </Tooltip>
                   </td>
                 </tr>
               ))}

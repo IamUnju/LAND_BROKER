@@ -1,12 +1,21 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import api from "../../../infrastructure/api";
 import StatCard from "../../components/StatCard";
+import Tooltip from "../../components/Tooltip";
 import MiniMetricChart from "../../components/dashboard/MiniMetricChart";
-import { HiOutlineOfficeBuilding, HiOutlineKey, HiOutlineDocumentText, HiOutlineCurrencyDollar, HiOutlineCog } from "react-icons/hi";
+import { HiOutlineOfficeBuilding, HiOutlineKey, HiOutlineDocumentText, HiOutlineCurrencyDollar, HiOutlineCog, HiOutlineChatAlt2 } from "react-icons/hi";
 
 export default function OwnerDashboard() {
-  const [stats, setStats] = useState({ properties: 0, units: 0, leases: 0, pendingRent: 0, maintenance: 0 });
-  const [monthlyData, setMonthlyData] = useState([]);
+  const [stats, setStats] = useState({ properties: 0, units: 0, leases: 0, pendingRent: 0, maintenance: 0, pendingInquiries: 0 });
+  const [myProperties, setMyProperties] = useState([]);
+
+  const toArray = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.properties)) return payload.properties;
+    if (Array.isArray(payload?.items)) return payload.items;
+    return [];
+  };
 
   useEffect(() => {
     Promise.allSettled([
@@ -15,18 +24,23 @@ export default function OwnerDashboard() {
       api.get("/leases/"),
       api.get("/payments/"),
       api.get("/maintenance/"),
-    ]).then(([p, u, l, pay, m]) => {
-      const properties = p.value?.data?.items ?? p.value?.data ?? [];
-      const units = u.value?.data ?? [];
-      const leases = l.value?.data ?? [];
-      const payments = pay.value?.data ?? [];
-      const maintenance = m.value?.data ?? [];
+      api.get("/inquiries/assigned"),
+    ]).then(([p, u, l, pay, m, inq]) => {
+      const properties = toArray(p.value?.data);
+      const units = toArray(u.value?.data);
+      const leases = toArray(l.value?.data);
+      const payments = toArray(pay.value?.data);
+      const maintenance = toArray(m.value?.data);
+      const inquiries = toArray(inq.value?.data);
+
+      setMyProperties(properties);
       setStats({
         properties: properties.length,
         units: units.length,
         leases: leases.filter((x) => x.status === "ACTIVE").length,
         pendingRent: payments.filter((x) => x.status === "PENDING").length,
         maintenance: maintenance.filter((x) => x.status === "PENDING").length,
+        pendingInquiries: inquiries.filter((x) => x.status === "PENDING").length,
       });
     });
   }, []);
@@ -47,6 +61,43 @@ export default function OwnerDashboard() {
         <StatCard title="Active Leases" value={stats.leases} icon={HiOutlineDocumentText} color="purple" />
         <StatCard title="Pending Payments" value={stats.pendingRent} icon={HiOutlineCurrencyDollar} color="yellow" />
         <StatCard title="Open Maintenance" value={stats.maintenance} icon={HiOutlineCog} color="red" />
+        <StatCard title="Pending Inquiries" value={stats.pendingInquiries} icon={HiOutlineChatAlt2} color="rose" />
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-800">Properties Created By You</h3>
+          <Link to="/owner/properties" className="text-sm font-medium text-primary-600 hover:underline">
+            Manage properties
+          </Link>
+        </div>
+
+        {myProperties.length === 0 ? (
+          <p className="text-sm text-gray-500">No properties created yet.</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {myProperties.slice(0, 6).map((property) => (
+              <div key={property.id} className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <p className="truncate font-semibold text-gray-800">{property.title}</p>
+                <p className="mt-1 truncate text-xs text-gray-500">
+                  {property.property_type_name || "Property"} · {property.listing_type_name || "Listing"}
+                </p>
+                <p className="mt-1 truncate text-xs text-gray-500">{property.address || "No address"}</p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-800">
+                    {property.currency_symbol || property.currency_code || "GH₵"} {Number(property.price || 0).toLocaleString()}
+                  </span>
+                  <Link
+                    to={`/owner/properties?mode=edit&id=${property.id}`}
+                    className="text-xs font-medium text-primary-600 hover:underline"
+                  >
+                    View
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
