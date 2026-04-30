@@ -4,5 +4,4 @@ dockerfilePath = "Dockerfile"
 
 [deploy]
 # Migrations and app startup handled by wait_and_migrate.sh
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 3
+

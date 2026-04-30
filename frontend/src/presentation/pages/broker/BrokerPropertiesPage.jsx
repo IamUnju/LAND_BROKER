@@ -19,6 +19,15 @@ function parseAmenities(value) {
     .filter(Boolean);
 }
 
+function normalizePropertyTypeName(name) {
+  return String(name ?? "").trim().toLowerCase();
+}
+
+function supportsBedrooms(propertyTypeName) {
+  const normalizedName = normalizePropertyTypeName(propertyTypeName);
+  return normalizedName === "house" || normalizedName === "apartment";
+}
+
 export default function BrokerPropertiesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const formRef = useRef(null);
@@ -29,6 +38,8 @@ export default function BrokerPropertiesPage() {
   const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState(emptyForm());
   const [loading, setLoading] = useState(true);
+  const selectedPropertyType = propTypes.find((type) => String(type.id) === String(form.property_type_id));
+  const showBedrooms = supportsBedrooms(selectedPropertyType?.name);
 
   const scrollToForm = () => {
     requestAnimationFrame(() => {
@@ -124,14 +135,24 @@ export default function BrokerPropertiesPage() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+    const nextValue = type === "checkbox" ? checked : value;
+    setForm((f) => {
+      const updated = { ...f, [name]: nextValue };
+      if (name === "property_type_id") {
+        const nextPropertyType = propTypes.find((propertyType) => String(propertyType.id) === String(value));
+        if (!supportsBedrooms(nextPropertyType?.name)) {
+          updated.bedrooms = "";
+        }
+      }
+      return updated;
+    });
   };
 
   const save = async () => {
     const payload = {
       ...form,
       price: form.price ? Number(form.price) : null,
-      bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
+      bedrooms: showBedrooms && form.bedrooms ? Number(form.bedrooms) : null,
       bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
       property_type_id: Number(form.property_type_id),
       listing_type_id: Number(form.listing_type_id),
@@ -177,7 +198,9 @@ export default function BrokerPropertiesPage() {
             <div><label className="label">Description</label><textarea name="description" rows={2} className="input" value={form.description} onChange={handleChange} /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div><label className="label">Price</label><input name="price" type="number" className="input" value={form.price} onChange={handleChange} /></div>
-              <div><label className="label">Bedrooms</label><input name="bedrooms" type="number" className="input" value={form.bedrooms} onChange={handleChange} /></div>
+              {showBedrooms && (
+                <div><label className="label">Bedrooms</label><input name="bedrooms" type="number" className="input" value={form.bedrooms} onChange={handleChange} /></div>
+              )}
               <div><label className="label">Bathrooms</label><input name="bathrooms" type="number" className="input" value={form.bathrooms} onChange={handleChange} /></div>
               <div className="flex items-center gap-2 mt-6">
                 <input name="is_furnished" type="checkbox" checked={form.is_furnished} onChange={handleChange} className="h-4 w-4" />

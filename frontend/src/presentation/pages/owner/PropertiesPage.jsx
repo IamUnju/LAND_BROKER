@@ -33,6 +33,15 @@ function parseAmenities(value) {
     .filter(Boolean);
 }
 
+function normalizePropertyTypeName(name) {
+  return String(name ?? "").trim().toLowerCase();
+}
+
+function supportsBedrooms(propertyTypeName) {
+  const normalizedName = normalizePropertyTypeName(propertyTypeName);
+  return normalizedName === "house" || normalizedName === "apartment";
+}
+
 export default function PropertiesPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -54,6 +63,14 @@ export default function PropertiesPage() {
   const existingImagePaths = parseImagePaths(form.image_paths);
   const totalImageCount = existingImagePaths.length + selectedFiles.length;
   const isImageCountValid = totalImageCount >= MIN_IMAGES && totalImageCount <= MAX_IMAGES;
+  const selectedPropertyType = propTypes.find((type) => String(type.id) === String(form.property_type_id));
+  const selectedPropertyTypeName = selectedPropertyType?.name ?? "";
+  const selectedListingType = listTypes.find((type) => String(type.id) === String(form.listing_type_id));
+  const selectedListingTypeName = normalizePropertyTypeName(selectedListingType?.name);
+  const supportsResidentialDetails = supportsBedrooms(selectedPropertyTypeName);
+  const showListingType = Boolean(form.property_type_id);
+  const showResidentialDetails = supportsResidentialDetails && Boolean(form.listing_type_id);
+  const showRoomType = normalizePropertyTypeName(selectedPropertyTypeName) === "house" && Boolean(form.listing_type_id) && selectedListingTypeName === "for_rent";
 
   const scrollToForm = () => {
     requestAnimationFrame(() => {
@@ -206,9 +223,19 @@ export default function PropertiesPage() {
       if (name === "property_type_id") {
         updated.listing_type_id = "";
         updated.room_type = "";
+        updated.bedrooms = "";
+        updated.bathrooms = "";
+        const nextPropertyType = propTypes.find((propertyType) => String(propertyType.id) === String(value));
+        if (!supportsBedrooms(nextPropertyType?.name)) {
+          updated.bedrooms = "";
+          updated.bathrooms = "";
+        }
       }
       if (name === "listing_type_id") {
-        updated.room_type = "";
+        const nextListingType = listTypes.find((listingType) => String(listingType.id) === String(value));
+        if (normalizePropertyTypeName(nextListingType?.name) !== "for_rent") {
+          updated.room_type = "";
+        }
       }
       return updated;
     });
@@ -247,13 +274,14 @@ export default function PropertiesPage() {
     const payload = {
       ...form,
       price: form.price ? Number(form.price) : null,
-      bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
-      bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
+      bedrooms: showResidentialDetails && form.bedrooms ? Number(form.bedrooms) : null,
+      bathrooms: showResidentialDetails && form.bathrooms ? Number(form.bathrooms) : null,
       property_type_id: Number(form.property_type_id),
       listing_type_id: Number(form.listing_type_id),
       district_id: form.district_id ? Number(form.district_id) : null,
       currency_id: Number(form.currency_id),
       broker_id: form.broker_id ? Number(form.broker_id) : null,
+      room_type: showRoomType && form.room_type ? form.room_type : null,
       images: [],
       amenities: parseAmenities(form.amenities_text),
     };
@@ -314,18 +342,11 @@ export default function PropertiesPage() {
             <div><label className="label">Title</label><input name="title" className="input" value={form.title} onChange={handleChange} /></div>
             <div><label className="label">Address</label><input name="address" className="input" value={form.address} onChange={handleChange} /></div>
             <div className="md:col-span-2"><label className="label">Description</label><textarea name="description" rows={2} className="input" value={form.description} onChange={handleChange} /></div>
-            <div><label className="label">Price</label><input name="price" type="number" className="input" value={form.price} onChange={handleChange} /></div>
-            <div><label className="label">Bedrooms</label><input name="bedrooms" type="number" className="input" value={form.bedrooms} onChange={handleChange} /></div>
-            <div><label className="label">Bathrooms</label><input name="bathrooms" type="number" className="input" value={form.bathrooms} onChange={handleChange} /></div>
-            <div className="flex items-center gap-2 mt-6"><input name="is_furnished" type="checkbox" checked={form.is_furnished} onChange={handleChange} className="h-4 w-4" /><label className="text-sm">Furnished</label></div>
             <div><label className="label">Property Type</label><select name="property_type_id" className="input" value={form.property_type_id} onChange={handleChange}><option value="">Select…</option>{propTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-            {form.property_type_id && propTypes.find(t => t.id == form.property_type_id)?.name === "House" && (
+            {showListingType && (
               <div><label className="label">Listing Type</label><select name="listing_type_id" className="input" value={form.listing_type_id} onChange={handleChange}><option value="">Select…</option>{listTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
             )}
-            {form.property_type_id && propTypes.find(t => t.id == form.property_type_id)?.name !== "House" && (
-              <div><label className="label">Listing Type</label><select name="listing_type_id" className="input" value={form.listing_type_id} onChange={handleChange}><option value="">Select…</option>{listTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-            )}
-            {form.property_type_id && propTypes.find(t => t.id == form.property_type_id)?.name === "House" && form.listing_type_id && listTypes.find(t => t.id == form.listing_type_id)?.name === "FOR_RENT" && (
+            {showRoomType && (
               <div>
                 <label className="label">Room Type</label>
                 <select name="room_type" className="input" value={form.room_type} onChange={handleChange}>
@@ -336,6 +357,14 @@ export default function PropertiesPage() {
                 </select>
               </div>
             )}
+            {showResidentialDetails && (
+              <div><label className="label">Bedrooms</label><input name="bedrooms" type="number" className="input" value={form.bedrooms} onChange={handleChange} /></div>
+            )}
+            {showResidentialDetails && (
+              <div><label className="label">Bathrooms</label><input name="bathrooms" type="number" className="input" value={form.bathrooms} onChange={handleChange} /></div>
+            )}
+            <div><label className="label">Price</label><input name="price" type="number" className="input" value={form.price} onChange={handleChange} /></div>
+            <div className="flex items-center gap-2 mt-6"><input name="is_furnished" type="checkbox" checked={form.is_furnished} onChange={handleChange} className="h-4 w-4" /><label className="text-sm">Furnished</label></div>
             <div><label className="label">Currency</label><select name="currency_id" className="input" value={form.currency_id} onChange={handleChange}><option value="">Select…</option>{currencies.map((c) => <option key={c.id} value={c.id}>{c.code} ({c.symbol})</option>)}</select></div>
             <div><label className="label">District</label><select name="district_id" className="input" value={form.district_id} onChange={handleChange}><option value="">Select…</option>{districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
             <div>

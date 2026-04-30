@@ -138,8 +138,10 @@ def get_maintenance_use_case(
 def get_inquiry_use_case(
     inquiry_repo=Depends(get_inquiry_repo),
     property_repo=Depends(get_property_repo),
+    user_repo=Depends(get_user_repo),
 ) -> InquiryUseCase:
-    return InquiryUseCase(inquiry_repo, property_repo)
+    from app.infrastructure.services.email_service import EmailService
+    return InquiryUseCase(inquiry_repo, property_repo, user_repo, EmailService())
 
 def get_favorite_use_case(
     favorite_repo=Depends(get_favorite_repo),

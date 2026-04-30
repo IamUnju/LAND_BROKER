@@ -1,8 +1,13 @@
+import logging
 from fastapi import HTTPException, status
 from app.domain.repositories.i_inquiry_repository import IInquiryRepository, IFavoriteRepository
 from app.domain.repositories.i_property_repository import IPropertyRepository
+from app.domain.repositories.i_user_repository import IUserRepository
 from app.domain.entities.inquiry import Inquiry, Favorite
 from app.application.dto.business_dto import InquiryCreateDTO, InquiryRespondDTO
+from app.infrastructure.services.email_service import EmailService
+
+logger = logging.getLogger(__name__)
 
 
 class InquiryUseCase:
@@ -10,9 +15,13 @@ class InquiryUseCase:
         self,
         inquiry_repo: IInquiryRepository,
         property_repo: IPropertyRepository,
+        user_repo: IUserRepository,
+        email_service: EmailService,
     ):
         self._repo = inquiry_repo
         self._property_repo = property_repo
+        self._user_repo = user_repo
+        self._email_service = email_service
 
     async def create_inquiry(self, dto: InquiryCreateDTO, user_id: int) -> Inquiry:
         prop = await self._property_repo.get_by_id(dto.property_id)
@@ -24,7 +33,31 @@ class InquiryUseCase:
             user_id=user_id,
             message=dto.message,
         )
-        return await self._repo.create(inquiry)
+        inquiry = await self._repo.create(inquiry)
+
+        # ── Email notifications (failure must not break inquiry creation) ──
+        try:
+            tenant = await self._user_repo.get_by_id(user_id)
+            tenant_name = f"{tenant.first_name} {tenant.last_name}" if tenant else "A Tenant"
+
+            recipients: list[tuple[str, str]] = []
+            if prop.owner_id:
+                owner = await self._user_repo.get_by_id(prop.owner_id)
+                if owner:
+                    recipients.append((owner.email, f"{owner.first_name} {owner.last_name}"))
+            if prop.broker_id and prop.broker_id != prop.owner_id:
+                broker = await self._user_repo.get_by_id(prop.broker_id)
+                if broker:
+                    recipients.append((broker.email, f"{broker.first_name} {broker.last_name}"))
+
+            for email_addr, name in recipients:
+                await self._email_service.send_inquiry_notification(
+                    email_addr, name, tenant_name, prop.title, dto.message
+                )
+        except Exception as exc:
+            logger.warning("Inquiry email notification failed: %s", exc)
+
+        return inquiry
 
     async def get_inquiry(self, inquiry_id: int) -> Inquiry:
         inquiry = await self._repo.get_by_id(inquiry_id)
@@ -48,7 +81,22 @@ class InquiryUseCase:
         if not is_admin and role != "ADMIN" and not is_owner and not is_broker:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
         inquiry.respond(dto.response)
-        return await self._repo.update(inquiry)
+        inquiry = await self._repo.update(inquiry)
+
+        # ── Notify tenant about the response ──────────────────────────────
+        try:
+            tenant = await self._user_repo.get_by_id(inquiry.user_id)
+            if tenant:
+                await self._email_service.send_inquiry_response(
+                    tenant.email,
+                    f"{tenant.first_name} {tenant.last_name}",
+                    prop.title,
+                    dto.response,
+                )
+        except Exception as exc:
+            logger.warning("Inquiry response email notification failed: %s", exc)
+
+        return inquiry
 
     async def get_property_inquiries(self, property_id: int, actor_user_id: int, actor_role: str, is_admin: bool = False):
         prop = await self._property_repo.get_by_id(property_id)
